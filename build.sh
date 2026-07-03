@@ -181,9 +181,21 @@ HERMES
 
 chmod +x "${BUILD_DIR}/config/includes.chroot/opt/rescue/install-hermes.sh"
 
-# Note: Hermes is NOT auto-started at boot.
-# The user runs it manually by typing 'hermes' in the terminal.
-# This gives them full control - run scripts first, then AI if needed.
+# Auto-start Hermes on login via .profile
+cat > "${BUILD_DIR}/config/includes.chroot/home/rescue/.profile" << 'PROFILE'
+#!/bin/bash
+# RedSeek Rescue — auto-start Hermes with rescue prompt
+clear
+echo "╔═══════════════════════════════════════════╗"
+echo "║      RedSeek Rescue by rednic            ║"
+echo "║      AI-powered system rescue tool       ║"
+echo "╚═══════════════════════════════════════════╝"
+echo ""
+echo "Starting AI rescue agent..."
+echo ""
+exec hermes run /opt/rescue/config/rescue-prompt.txt
+PROFILE
+chown rescue:rescue "${BUILD_DIR}/config/includes.chroot/home/rescue/.profile"
 
 # Boot splash
 mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/update-motd.d"
@@ -191,25 +203,12 @@ cat > "${BUILD_DIR}/config/includes.chroot/etc/update-motd.d/99-redseek-rescue" 
 #!/bin/sh
 echo ""
 echo "╔═══════════════════════════════════════════╗"
-echo "║      RedSeek Rescue by rednic               ║"
-echo "║      AI-powered system rescue tool        ║"
+echo "║      RedSeek Rescue by rednic            ║"
+echo "║      AI-powered system rescue tool       ║"
 echo "╚═══════════════════════════════════════════╝"
 echo ""
-echo "  🌐 wifi-connect.sh         — connect to WiFi"
-echo "  🔍 diagnose.sh             — system diagnostics"
-echo "  🪟 check-windows.sh        — deep Windows check"
-echo "  🦠 scan-windows.sh         — ClamAV virus scan"
-echo "  📥 download-antivirus.sh   — download portable AV via Wine"
-echo "  📂 registry-tools.sh       — edit Windows registry offline"
-echo "  🔑 reset-password.sh       — reset/remove Windows password"
-echo "  📋 parse-evtx.sh           — read Windows Event Logs"
-echo "  🧹 cleanup-updates.sh      — fix stuck Windows updates"
-echo "  📁 shadow-copy.sh          — restore from restore points"
-echo "  ✅ verify-files.sh         — check file signatures"
-echo "  💾 backup-data.sh          — backup user data"
-echo "  🔧 hardware-diagnostics.sh — test RAM/CPU/disk"
-echo "  🤖 hermes                  — start AI rescue agent"
-echo "     hermes run /opt/rescue/config/rescue-prompt.txt  — start with full context"
+echo "  Hermes AI rescue agent starts automatically."
+echo "  If you need the terminal, press Ctrl+C."
 echo ""
 MOTD
 chmod +x "${BUILD_DIR}/config/includes.chroot/etc/update-motd.d/99-redseek-rescue"

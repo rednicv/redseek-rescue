@@ -61,8 +61,9 @@ cd redseek-rescue
 2. Enter BIOS/UEFI (F2/F12/Del at boot)
 3. Select USB as boot device
 4. Wait for Ubuntu Live to load
-5. Open terminal — tools are in `/opt/rescue/scripts/`
-6. Start AI assistant: `hermes` or `hermes run /opt/rescue/config/rescue-prompt.txt`
+5. **Hermes starts automatically** — it will greet you and ask for a DeepSeek API key
+6. Get a free key at [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) (free credits on signup)
+7. Paste the key — Hermes saves it and starts diagnosing
 
 ## 📁 Project Structure
 
