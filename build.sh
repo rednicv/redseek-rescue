@@ -232,7 +232,6 @@ while true; do
     esac
 done
 PROFILE
-chown rescue:rescue "${BUILD_DIR}/config/includes.chroot/home/rescue/.profile"
 
 # Boot splash
 mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/update-motd.d"
