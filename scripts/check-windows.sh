@@ -6,6 +6,9 @@ MOUNT="/mnt/windows"
 LOGS_DIR="/opt/rescue/logs"
 OUTPUT="${LOGS_DIR}/windows-check.txt"
 
+# Ensure the log directory exists before trying to write the report
+mkdir -p "${LOGS_DIR}"
+
 echo "=== Windows Deep Check ===" > "${OUTPUT}"
 echo "Date: $(date)" >> "${OUTPUT}"
 echo "" >> "${OUTPUT}"
@@ -48,12 +51,15 @@ done
 # 4. Check for known virus patterns in startup
 echo "" >> "${OUTPUT}"
 echo "--- Autorun Scan (suspicious entries) ---" >> "${OUTPUT}"
-STARTUP_DIR="${MOUNT}/Users/*/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup"
-for f in ${STARTUP_DIR}/*; do
+
+# Quotes around glob path, wildcards outside — handles spaces in usernames safely
+for f in "${MOUNT}"/Users/*/AppData/Roaming/Microsoft/Windows/Start\ Menu/Programs/Startup/*; do
+  # Skip if no files matched the glob (literal '*')
   [ -f "${f}" ] || continue
+  
   SUSPICIOUS=$(file "${f}" | grep -iE "powershell|vbs|js|exe" || true)
   if [ -n "${SUSPICIOUS}" ]; then
-    echo "⚠️  ${f}" >> "${OUTPUT}"
+    echo "⚠️  $(basename "${f}") (in $(dirname "${f}"))" >> "${OUTPUT}"
     echo "   ${SUSPICIOUS}" >> "${OUTPUT}"
   fi
 done
@@ -61,15 +67,18 @@ done
 # 5. Minidumps
 echo "" >> "${OUTPUT}"
 echo "--- BSOD Minidumps ---" >> "${OUTPUT}"
-DUMP_DIR="${MOUNT}/Windows/minidump"
+DUMP_DIR="${MOUNT}/Windows/Minidump"
 if [ -d "${DUMP_DIR}" ]; then
-  DUMP_COUNT=$(ls "${DUMP_DIR}"/*.dmp 2>/dev/null | wc -l)
-  if [ "${DUMP_COUNT}" -gt 0 ]; then
-    echo "${DUMP_COUNT} dump file(s) found:" >> "${OUTPUT}"
+  # Array-based expansion — handles spaces safely
+  DUMPS=("${DUMP_DIR}"/*.dmp)
+  if [ -f "${DUMPS[0]}" ]; then
+    echo "${#DUMPS[@]} dump file(s) found:" >> "${OUTPUT}"
     ls -lh "${DUMP_DIR}"/*.dmp 2>/dev/null >> "${OUTPUT}"
   else
     echo "No minidumps." >> "${OUTPUT}"
   fi
+else
+  echo "Minidump directory not found." >> "${OUTPUT}"
 fi
 
 # 6. Disk corruption check hint
@@ -77,7 +86,7 @@ echo "" >> "${OUTPUT}"
 echo "--- Next steps ---" >> "${OUTPUT}"
 echo "Run chkdsk: ntfsfix -d ${MOUNT}  OR  chkdsk C: /f from Windows recovery" >> "${OUTPUT}"
 echo "Check SFC: sfc /scannow from Windows recovery" >> "${OUTPUT}"
-echo "For BSOD analysis, ask Hermes about the latest .dmp file" >> "${OUTPUT}"
+echo "For BSOD analysis, run 'clr-dump' or a similar tool on the latest .dmp file" >> "${OUTPUT}"
 echo "" >> "${OUTPUT}"
 echo "=== Report saved to ${OUTPUT} ==="
 cat "${OUTPUT}"
