@@ -48,7 +48,7 @@ cd "${BUILD_DIR}"
 lb config \
   --distribution noble \
   --architectures amd64 \
-  --archive-areas "main universe multiverse" \
+  --archive-areas "main universe multiverse restricted" \
   --bootappend-live "boot=live components locales=ro_RO.UTF-8 keyboard-layouts=ro username=rescue user-fullname=Rescue" \
   --debian-installer false \
   --memtest none \
@@ -70,6 +70,11 @@ openssh-server
 curl
 wget
 git
+
+# WiFi firmware (Broadcom, Realtek, Atheros, Intel)
+linux-firmware
+firmware-b43-installer
+firmware-realtek
 
 # Filesystem tools (Windows NTFS)
 ntfs-3g
