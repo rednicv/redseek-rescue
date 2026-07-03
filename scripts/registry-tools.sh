@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # registry-tools.sh — Windows registry manipulation via python3-hivex
 # Read, backup, edit offline registry hives from Linux
-set -e
+set -euo pipefail
 
 MOUNT="/mnt/windows"
 LOGS_DIR="/opt/rescue/logs"
@@ -20,21 +20,21 @@ if ! mountpoint -q "${MOUNT}"; then
   exit 1
 fi
 
-# Check hivex is available
+# Check hivex is available natively
 if ! python3 -c "import hivex" 2>/dev/null; then
-  echo "[!] python3-hivex not installed." | tee -a "${LOGS_DIR}/registry-tools.log"
-  echo "    Install: pip install python-hivex" | tee -a "${LOGS_DIR}/registry-tools.log"
-  echo "    Falling back to chntpw..." | tee -a "${LOGS_DIR}/registry-tools.log"
+  echo "[!] python3-hivex not found." | tee -a "${LOGS_DIR}/registry-tools.log"
+  echo "    Please install it via your package manager (e.g., apt install python3-hivex)" | tee -a "${LOGS_DIR}/registry-tools.log"
+  exit 1
 fi
 
 usage() {
   echo "Usage:"
-  echo "  ./registry-tools.sh backup           — Backup all registry hives"
-  echo "  ./registry-tools.sh list-services    — List all services (from SYSTEM)"
-  echo "  ./registry-tools.sh disable SERVICE  — Disable a service by name"
-  echo "  ./registry-tools.sh enable SERVICE   — Enable a service by name"
-  echo "  ./registry-tools.sh info HIVE        — Show info about a hive file"
-  echo "  ./registry-tools.sh restore          — Restore from backup"
+  echo "  ./registry-tools.sh backup            — Backup all registry hives"
+  echo "  ./registry-tools.sh list-services     — List all services (from SYSTEM)"
+  echo "  ./registry-tools.sh disable SERVICE   — Disable a service by name"
+  echo "  ./registry-tools.sh enable SERVICE    — Enable a service by name"
+  echo "  ./registry-tools.sh info HIVE         — Show info about a hive file"
+  echo "  ./registry-tools.sh restore           — Restore from backup"
   echo ""
   echo "Backup location: ${BACKUP_DIR}"
 }
@@ -81,13 +81,13 @@ if not os.path.exists(hive_path):
     sys.exit(1)
 
 h = hivex.Hivex(hive_path, write=True)
-# Navigate to CurrentControlSet\Services\SERVICE_NAME
 current = h.root()
-for key in ['Select']:
-    for node in h.node_children(current):
-        if h.node_name(node) == key:
-            current = node
-            break
+
+# Navigate to Select case-insensitively
+for node in h.node_children(current):
+    if h.node_name(node).lower() == 'select':
+        current = node
+        break
 
 # Get Current value
 current_val = None
@@ -113,17 +113,22 @@ for key in [control_set, 'Services', svc_name]:
             found = True
             break
     if not found:
-        print('[!] Service', svc_name, 'not found')
+        print('[!] Service', svc_name, 'not found under', key)
         sys.exit(1)
 
-# Set Start to 4 (Disabled)
+# Set Start to 4 (Disabled) using proper hivex dict
+found_start = False
 for val in h.node_values(current):
     if h.value_key(val) == 'Start':
         old_val = int.from_bytes(h.value_value(val)[1], 'little')
-        h.node_set_value(current, hivex.HivexValue(label='Start', 
-                           value=(old_val, 4).to_bytes(4, 'little')))
-        print('[✅] Service', svc_name, 'disabled (Start:', old_val, '→ 4)')
+        h.node_set_value(current, {'t': 4, 'key': 'Start', 'value': (4).to_bytes(4, 'little')})
+        print('[✅] Service', svc_name, 'disabled (Start:', old_val, '-> 4)')
+        found_start = True
         break
+
+if not found_start:
+    h.node_set_value(current, {'t': 4, 'key': 'Start', 'value': (4).to_bytes(4, 'little')})
+    print('[✅] Service', svc_name, 'disabled (Created new Start value as 4)')
 
 h.commit(None)
 " 2>&1 | tee -a "${LOGS_DIR}/registry-tools.log"
@@ -136,7 +141,7 @@ enable_service() {
     exit 1
   fi
   
-  echo "[+] Enabling service: ${SERVICE_NAME}" | tee -a "${LOGS_DIR}/registry-tools.log}"
+  echo "[+] Enabling service: ${SERVICE_NAME}" | tee -a "${LOGS_DIR}/registry-tools.log"
   python3 -c "
 import hivex, sys, os
 
@@ -150,12 +155,20 @@ if not os.path.exists(hive_path):
 h = hivex.Hivex(hive_path, write=True)
 current = h.root()
 
-# Get Current value
+for node in h.node_children(current):
+    if h.node_name(node).lower() == 'select':
+        current = node
+        break
+
 current_val = None
 for val in h.node_values(current):
     if h.value_key(val) == 'Current':
         current_val = int.from_bytes(h.value_value(val)[1], 'little')
         break
+
+if current_val is None:
+    print('[!] Could not determine CurrentControlSet')
+    sys.exit(1)
 
 control_set = 'ControlSet{:03d}'.format(current_val)
 
@@ -172,43 +185,58 @@ for key in [control_set, 'Services', svc_name]:
         print('[!] Service', svc_name, 'not found')
         sys.exit(1)
 
-# Set Start to 2 (Automatic) or 3 (Manual)
+# Set Start to 2 (Automatic)
+found_start = False
 for val in h.node_values(current):
     if h.value_key(val) == 'Start':
         old_val = int.from_bytes(h.value_value(val)[1], 'little')
-        new_val = 2 if old_val == 4 else old_val  # Only enable if disabled
+        new_val = 2 if old_val == 4 else old_val
         if old_val == 4:
-            h.node_set_value(current, hivex.HivexValue(label='Start',
-                               value=(new_val).to_bytes(4, 'little')))
-            print('[✅] Service', svc_name, 'enabled (Start:', old_val, '→', new_val, ')')
+            h.node_set_value(current, {'t': 4, 'key': 'Start', 'value': (new_val).to_bytes(4, 'little')})
+            print('[✅] Service', svc_name, 'enabled (Start:', old_val, '->', new_val, ')')
         else:
             print('[i] Service', svc_name, 'already enabled (Start:', old_val, ')')
+        found_start = True
         break
+
+if not found_start:
+    h.node_set_value(current, {'t': 4, 'key': 'Start', 'value': (2).to_bytes(4, 'little')})
+    print('[✅] Service', svc_name, 'enabled (Created new Start value as 2)')
 
 h.commit(None)
 " 2>&1 | tee -a "${LOGS_DIR}/registry-tools.log"
 }
 
 list_services() {
-  echo "[+] Listing all Windows services..." | tee -a "${LOGS_DIR}/registry-tools.log}"
+  echo "[+] Listing all Windows services..." | tee -a "${LOGS_DIR}/registry-tools.log"
   python3 -c "
-import hivex, os
+import hivex, os, sys
 
 hive_path = '${REG_DIR}/SYSTEM'
+if not os.path.exists(hive_path):
+    print('[!] SYSTEM hive not found')
+    sys.exit(1)
 
 h = hivex.Hivex(hive_path)
 current = h.root()
 
-# Get Current control set
+for node in h.node_children(current):
+    if h.node_name(node).lower() == 'select':
+        current = node
+        break
+
 current_val = None
 for val in h.node_values(current):
     if h.value_key(val) == 'Current':
         current_val = int.from_bytes(h.value_value(val)[1], 'little')
         break
 
+if current_val is None:
+    print('[!] Could not determine CurrentControlSet')
+    sys.exit(1)
+
 control_set = 'ControlSet{:03d}'.format(current_val)
 
-# Navigate to Services
 current = h.root()
 for key in [control_set, 'Services']:
     for node in h.node_children(current):
@@ -219,7 +247,7 @@ for key in [control_set, 'Services']:
 services = []
 for node in h.node_children(current):
     name = h.node_name(node)
-    start_val = 3  # default manual
+    start_val = 3
     for val in h.node_values(node):
         if h.value_key(val) == 'Start':
             start_val = int.from_bytes(h.value_value(val)[1], 'little')
@@ -228,7 +256,6 @@ for node in h.node_children(current):
     start_names = {0: 'BOOT', 1: 'SYSTEM', 2: 'AUTO', 3: 'MANUAL', 4: 'DISABLED'}
     services.append((start_val, name, start_names.get(start_val, str(start_val))))
 
-# Sort by start type
 services.sort()
 for s in services:
     print(f'  [{s[2]:7}] {s[1]}')
