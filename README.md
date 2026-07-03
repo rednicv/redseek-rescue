@@ -1,10 +1,20 @@
-# RedSeek Rescue [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Version](https://img.shields.io/badge/version-1.0-blue.svg)](https://github.com/rednicv/redseek-rescue/releases)
+# RedSeek Rescue [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) [![Version](https://img.shields.io/badge/version-1.0-blue.svg)](https://github.com/rednicv/redseek-rescue/releases) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 **AI-powered bootable USB for Windows system repair.**
 
 Boot from USB, run diagnostics, fix Windows — all from Linux, with an AI agent guiding you. No need to boot a broken Windows install.
 
 Built with **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** + **DeepSeek** on a lightweight Ubuntu Live environment.
+
+```text
+  ┌──────────┐     ┌──────────┐     ┌───────────┐     ┌──────────┐
+  │  Boot    │────▶│  WiFi    │────▶│  Paste    │────▶│  Fix     │
+  │  from    │     │  setup   │     │  DeepSeek │     │  Windows │
+  │  USB     │     │          │     │  key      │     │          │
+  └──────────┘     └──────────┘     └───────────┘     └──────────┘
+                         │                                      
+                         └──▶ Manual mode (no AI needed)
+```
 
 ---
 
@@ -118,6 +128,10 @@ redseek-rescue/
 ## 📝 License
 
 MIT — do whatever you want, just keep the attribution. See [LICENSE](LICENSE).
+
+## 🤝 Contributing
+
+Pull requests welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
