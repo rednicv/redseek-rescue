@@ -16,6 +16,12 @@ echo ""
 
 # Auto-inject DeepSeek API key from current active config
 echo "[*] Reading DeepSeek API key from active Hermes config..."
+
+# If hermes-config.yaml doesn't exist (fresh clone), create from example
+if [ ! -f "${CONFIG_DIR}/hermes-config.yaml" ]; then
+  echo "[*] Creating config/hermes-config.yaml from example..."
+  cp "${CONFIG_DIR}/hermes-config.yaml.example" "${CONFIG_DIR}/hermes-config.yaml"
+fi
 DEEPSEEK_KEY=$(python3 -c "
 import yaml
 with open('/home/ubuntu/.hermes/config.yaml') as f:
