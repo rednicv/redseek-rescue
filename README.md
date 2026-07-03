@@ -39,6 +39,10 @@ Full list: see `scripts/` directory.
 ### Build
 
 ```bash
+# Install build dependencies (Ubuntu/Debian)
+sudo apt update && sudo apt install -y live-build
+
+# Clone and build
 git clone git@github.com:rednicv/redseek-rescue.git
 cd redseek-rescue
 
