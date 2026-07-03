@@ -59,10 +59,6 @@ echo ""
 echo "=== Config created ==="
 echo ""
 
-# Now we customize the packages
-echo "live-task-recommends" >> config/package-lists/desktop.list.chroot
-echo "live-task-standard" >> config/package-lists/desktop.list.chroot
-
 # Create our package list
 cat > config/package-lists/deepseekrescue.list.chroot << 'PKGLIST'
 # Core
@@ -71,21 +67,19 @@ curl
 wget
 git
 
-# WiFi firmware (Broadcom, Realtek, Atheros, Intel)
+# WiFi firmware (Broadcom, Atheros, Intel)
 linux-firmware
 firmware-b43-installer
-firmware-realtek
 
 # Filesystem tools (Windows NTFS)
 ntfs-3g
-ntfsprogs
 exfatprogs
 fuse3
 
 # Disk diagnostics
 smartmontools
 hdparm
-ddrescue
+gddrescue
 testdisk
 parted
 gdisk
@@ -147,7 +141,6 @@ python3-evtx
 chntpw
 pipx
 wine
-wine32
 
 # Misc
 nano
