@@ -55,6 +55,10 @@ cd redseek-rescue
 
 ### Write to USB
 
+> 📀 **Step-by-step guide with screenshots:** See **[INSTALL.md](INSTALL.md)** — covers Rufus, BIOS setup, and troubleshooting.
+
+Quick reference:
+
 1. Download the ISO
 2. **Rufus** (Windows) → select ISO → **DD Image mode** → Write
 3. Or: `sudo dd if=redseek-rescue-v1.0.iso of=/dev/sdX bs=4M status=progress` (Linux/macOS)
