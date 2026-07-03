@@ -190,16 +190,42 @@ chmod +x "${BUILD_DIR}/config/includes.chroot/opt/rescue/install-hermes.sh"
 # Auto-start Hermes on login via .profile
 cat > "${BUILD_DIR}/config/includes.chroot/home/rescue/.profile" << 'PROFILE'
 #!/bin/bash
-# RedSeek Rescue — auto-start Hermes with rescue prompt
-clear
-echo "╔═══════════════════════════════════════════╗"
-echo "║      RedSeek Rescue by rednic            ║"
-echo "║      AI-powered system rescue tool       ║"
-echo "╚═══════════════════════════════════════════╝"
-echo ""
-echo "Starting AI rescue agent..."
-echo ""
-exec hermes run /opt/rescue/config/rescue-prompt.txt
+# RedSeek Rescue — auto-start Hermes, with recovery
+
+while true; do
+    clear
+    echo "╔═══════════════════════════════════════════╗"
+    echo "║      RedSeek Rescue by rednic            ║"
+    echo "║      AI-powered system rescue tool       ║"
+    echo "╚═══════════════════════════════════════════╝"
+    echo ""
+    echo "Starting AI rescue agent..."
+    echo ""
+    
+    hermes run /opt/rescue/config/rescue-prompt.txt
+    
+    # Hermes exited — show recovery options
+    clear
+    echo ""
+    echo "╔═══════════════════════════════════════════╗"
+    echo "║  Hermes has stopped.                     ║"
+    echo "╚═══════════════════════════════════════════╝"
+    echo ""
+    echo "  Type 'hermes'   → restart AI assistant"
+    echo "  Type 'manual'   → drop to shell (scripts in /opt/rescue/scripts/)"
+    echo ""
+    read -p "hermes/manual> " choice
+    
+    case "$choice" in
+        manual) 
+            echo "Type 'hermes' to restart. Scripts: /opt/rescue/scripts/"
+            exec bash --login
+            ;;
+        *) 
+            echo "Restarting..."
+            ;;
+    esac
+done
 PROFILE
 chown rescue:rescue "${BUILD_DIR}/config/includes.chroot/home/rescue/.profile"
 
