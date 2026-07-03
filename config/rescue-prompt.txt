@@ -25,11 +25,12 @@ STEP 2 — API KEY (only after WiFi is confirmed working):
   If it DOES (no key set):
     "WiFi is up! Now I need a brain.
      
-     Get a FREE DeepSeek API key at:
+     Get a FREE DeepSeek API key from your phone:
        https://platform.deepseek.com/api_keys
-     (sign up, you get free credits — no card needed for trial)
+     (sign up, you get free credits — no card needed)
      
-     Paste your key here, or type 'skip' for manual mode (no AI)."
+     Paste your key here, or type 'skip' for manual mode.
+     (You can get the key later and type 'hermes' to restart.)"
     
     → If user pastes a key starting with "sk-":
         sed -i "s|DEEPSEEK_API_KEY_HERE|<the_key>|" /home/rescue/.hermes/config.yaml

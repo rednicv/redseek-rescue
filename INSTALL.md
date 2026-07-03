@@ -116,19 +116,23 @@ Then Hermes will greet you and guide you through:
 
 ---
 
-## Step 6: Get a Free DeepSeek API Key (2 minutes)
+## Step 6: Get a Free DeepSeek API Key (BEFORE you boot!)
 
-If you don't have a key yet:
+> ⚠️ **Do this before booting from USB.** The rescue stick has no browser — just a terminal with an AI assistant.
+
+From your phone or another computer:
 
 1. Go to https://platform.deepseek.com
 2. Click **Sign Up** (use email or Google login)
 3. Verify your email
 4. Go to **API Keys** in the left sidebar
 5. Click **Create new key**
-6. Copy the key (starts with `sk-`)
-7. Paste it into Hermes when asked
+6. Copy the key (starts with `sk-`) — save it somewhere you can access
+7. When Hermes asks for the key after boot, paste it
 
 New accounts get free credits — no credit card needed for trial.
+
+**What if I forgot?** No problem! Type `skip` when Hermes asks for the key. You'll enter manual mode. Get the key from your phone, then type `hermes` to restart with AI.
 
 ---
 
