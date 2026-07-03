@@ -112,8 +112,8 @@ Network:
 - wifi-connect.sh         WiFi setup
 
 Mount:
-- mount-windows.sh        NTFS + BitLocker detection
-- unmount-windows.sh      Safe unmount
+- mount-windows.sh        NTFS + BitLocker detection (saves mount status to config/mount-status.txt: "rw" or "ro")
+- unmount-windows.sh      Safe unmount (cleans up status files)
 
 BitLocker: dislocker is installed. If encrypted, ask for recovery key.
   dislocker -V /dev/sdX# -uRECOVERY_KEY -- /mnt/bitlocker
