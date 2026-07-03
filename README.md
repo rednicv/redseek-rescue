@@ -133,6 +133,14 @@ MIT — do whatever you want, just keep the attribution. See [LICENSE](LICENSE).
 
 Pull requests welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+## 🔒 Security
+
+Found a vulnerability? See [SECURITY.md](SECURITY.md) for how to report it responsibly.
+
+## 📜 Code of Conduct
+
+Be helpful. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
 ---
 
 **by [rednic](https://github.com/rednicv)** — because reinstalling Windows is giving up.
