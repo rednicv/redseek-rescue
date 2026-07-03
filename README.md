@@ -129,6 +129,10 @@ redseek-rescue/
 
 MIT — do whatever you want, just keep the attribution. See [LICENSE](LICENSE).
 
+## 📋 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
 ## 🤝 Contributing
 
 Pull requests welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
