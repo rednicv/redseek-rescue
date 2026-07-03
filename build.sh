@@ -48,7 +48,7 @@ cd "${BUILD_DIR}"
 lb config \
   --distribution noble \
   --architectures amd64 \
-  --archive-areas "main,universe,multiverse" \
+  --archive-areas "main universe multiverse" \
   --bootappend-live "boot=live components locales=ro_RO.UTF-8 keyboard-layouts=ro username=rescue user-fullname=Rescue" \
   --debian-installer false \
   --memtest none \
