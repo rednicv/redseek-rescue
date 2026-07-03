@@ -146,6 +146,22 @@ New accounts get free credits — no credit card needed for trial.
 
 ---
 
+## Updates & Persistence
+
+RedSeek Rescue runs from a **live USB** — it's a rescue tool, not an installed OS.
+
+| Question | Answer |
+|---|---|
+| **Can I update Hermes?** | Yes — `pipx upgrade hermes-agent`. But it's lost on reboot. |
+| **Can I add new scripts?** | Yes — `/opt/rescue/scripts/`. Lost on reboot. |
+| **Can I install packages?** | Yes — `sudo apt install`. Lost on reboot. |
+| **How do I get the latest version?** | Download the new ISO from [GitHub Releases](https://github.com/rednicv/redseek-rescue/releases), re-write the USB with Rufus. |
+| **Can anything survive a reboot?** | No. Everything is in RAM. When you pull the USB and reboot, it's a fresh start. |
+
+**The flow:** Boot → fix Windows → remove USB → reboot into repaired Windows. You don't live on the stick.
+
+---
+
 ## Video Guide
 
 *Coming soon*
