@@ -181,6 +181,11 @@ cp "${CONFIG_FILE}" /home/rescue/.hermes/config.yaml
 # Set up skills directory for rescue-specific skills
 mkdir -p /home/rescue/.hermes/skills
 
+# Copy user guide skill from config
+if [ -d \"${RESCUE_DIR}/config/skills\" ]; then
+  cp -r \"${RESCUE_DIR}/config/skills/\"* /home/rescue/.hermes/skills/
+fi
+
 # Fix permissions
 chown -R rescue:rescue /home/rescue/.hermes
 HERMES
