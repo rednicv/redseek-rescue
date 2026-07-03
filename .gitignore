@@ -1,0 +1,27 @@
+# Build artifacts
+build/
+output/
+*.iso
+build.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+config/hermes-config.yaml
+!config/hermes-config.yaml.example

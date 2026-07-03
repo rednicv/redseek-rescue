@@ -1,0 +1,27 @@
+# deepseekrescue — Hermes Agent configuration
+# Key is auto-injected by build.sh from active Amsterdam config
+
+default_provider: deepseek
+default_model: deepseek-v4-flash
+
+fallback_providers:
+  - deepseek
+
+gateway:
+  enabled: false
+
+tools:
+  enabled: true
+
+providers:
+  deepseek:
+    api_key: "DEEPSEEK_API_KEY_HERE"
+
+models:
+  deepseek:
+    deepseek-v4-flash:
+      provider: deepseek
+    deepseek-v3-0324:
+      provider: deepseek
+    deepseek-r1:
+      provider: deepseek
