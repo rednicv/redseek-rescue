@@ -2,7 +2,7 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
-## [1.0.0] — Unreleased
+## [1.0.0] — 2026-07-03
 
 ### Added
 - Initial release of RedSeek Rescue
