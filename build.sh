@@ -23,8 +23,9 @@ if [ ! -f "${CONFIG_DIR}/hermes-config.yaml" ]; then
   cp "${CONFIG_DIR}/hermes-config.yaml.example" "${CONFIG_DIR}/hermes-config.yaml"
 fi
 DEEPSEEK_KEY=$(python3 -c "
-import yaml
-with open('/home/ubuntu/.hermes/config.yaml') as f:
+import os, yaml
+home = os.path.expanduser('~')
+with open(f'{home}/.hermes/config.yaml') as f:
     c = yaml.safe_load(f)
 print(c['providers']['deepseek']['api_key'])
 " 2>/dev/null || echo "")
@@ -141,7 +142,7 @@ python3-hivex
 python3-evtx
 chntpw
 pipx
-wine
+wine64
 
 # Misc
 nano
@@ -181,8 +182,8 @@ cp "${CONFIG_FILE}" /home/rescue/.hermes/config.yaml
 mkdir -p /home/rescue/.hermes/skills
 
 # Copy user guide skill from config
-if [ -d \"${RESCUE_DIR}/config/skills\" ]; then
-  cp -r \"${RESCUE_DIR}/config/skills/\"* /home/rescue/.hermes/skills/
+if [ -d "${RESCUE_DIR}/config/skills" ]; then
+  cp -r "${RESCUE_DIR}/config/skills/"* /home/rescue/.hermes/skills/
 fi
 
 # Fix permissions
@@ -190,6 +191,12 @@ chown -R rescue:rescue /home/rescue/.hermes
 HERMES
 
 chmod +x "${BUILD_DIR}/config/includes.chroot/opt/rescue/install-hermes.sh"
+
+# Move to chroot hooks so live-build actually executes it
+mkdir -p "${BUILD_DIR}/config/hooks/chroot"
+mv "${BUILD_DIR}/config/includes.chroot/opt/rescue/install-hermes.sh" \
+   "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot"
+chmod +x "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot"
 
 # Auto-start Hermes on login via .profile
 cat > "${BUILD_DIR}/config/includes.chroot/home/rescue/.profile" << 'PROFILE'
