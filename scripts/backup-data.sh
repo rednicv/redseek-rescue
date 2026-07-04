@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # backup-data.sh — Backup user data from broken Windows to external USB or cloud
+# Now detects removable USB drives via lsblk RM flag (excludes internal HDDs)
 set -e
 
-MOUNT="/mnt/windows"
-LOGS_DIR="/opt/rescue/logs"
-mkdir -p "${LOGS_DIR}"
+source "$(dirname "$0")/utils.sh"
 
 BACKUP_LOG="${LOGS_DIR}/backup.log"
 
@@ -12,27 +11,26 @@ echo "=== Windows Data Backup ===" | tee "${BACKUP_LOG}"
 echo "Date: $(date)" | tee -a "${BACKUP_LOG}"
 echo "" | tee -a "${BACKUP_LOG}"
 
-if ! mountpoint -q "${MOUNT}"; then
-  echo "[!] Windows not mounted. Run mount-windows.sh first." | tee -a "${BACKUP_LOG}"
-  exit 1
-fi
+verify_mount || exit 1
 
-# Detect a second USB drive for backup
+# Detect removable USB drives using lsblk RM flag
 detect_usb() {
-  for dev in /dev/sd[a-z][0-9] /dev/nvme[0-9]n[0-9]p[0-9]; do
-    [ -b "${dev}" ] || continue
-    MOUNTED=$(findmnt -n -o TARGET "${dev}" 2>/dev/null || true)
-    if [ -n "${MOUNTED}" ] && [ "${MOUNTED}" != "${MOUNT}" ] && [ "${MOUNTED}" != "/run/live/medium" ]; then
-      echo "${MOUNTED}"
-      return
-    fi
+  # lsblk -no NAME,RM,MOUNTPOINT: RM=1 means removable
+  lsblk -no NAME,RM,MOUNTPOINT -l 2>/dev/null | while read -r name rm mp; do
+    [ "${rm}" = "1" ] || continue
+    [ -n "${mp}" ] || continue
+    # Skip our own Windows mount and the live USB
+    [ "${mp}" = "${MOUNT}" ] && continue
+    [ "${mp}" = "/run/live/medium" ] && continue
+    [ "${mp}" = "/run/live/rootfs" ] && continue
+    echo "${mp}"
+    return
   done
-  echo ""
 }
 
 usage() {
   echo "Usage:"
-  echo "  ./backup-data.sh usb               — Backup to second USB drive"
+  echo "  ./backup-data.sh usb               — Backup to removable USB drive"
   echo "  ./backup-data.sh cloud             — Backup to cloud (automated rclone)"
   echo "  ./backup-data.sh /mnt/usb2         — Backup to specific path"
   echo ""
@@ -51,7 +49,6 @@ backup_to_path() {
   for userdir in "${USERS_DIR}"/*; do
     USERNAME=$(basename "${userdir}")
     
-    # Skip Windows system folders
     case "${USERNAME}" in
         Public|"All Users"|Default|"Default User"|desktop.ini) continue ;;
     esac
@@ -61,7 +58,6 @@ backup_to_path() {
     echo "👤 Processing user: ${USERNAME}" | tee -a "${BACKUP_LOG}"
     
     for folder in "${FOLDERS[@]}"; do
-      # Case-insensitive search (Desktop vs desktop)
       SRC=$(find "${userdir}" -maxdepth 1 -iname "${folder}" 2>/dev/null | head -n1)
       
       if [ -n "${SRC}" ] && [ -d "${SRC}" ]; then
@@ -71,7 +67,6 @@ backup_to_path() {
         DEST_USER="${DEST}/windows-backup/${USERNAME}/${folder}"
         mkdir -p "${DEST_USER}"
         
-        # Live progress — user sees what's happening
         rsync -ah --info=progress2 "${SRC}/" "${DEST_USER}/"
       fi
     done
@@ -129,8 +124,9 @@ case "${1:-help}" in
   usb)
     USB_PATH=$(detect_usb)
     if [ -z "${USB_PATH}" ]; then
-      echo "[!] No secondary/mounted USB detected." | tee -a "${BACKUP_LOG}"
+      echo "[!] No removable USB drive detected." | tee -a "${BACKUP_LOG}"
       echo "    Make sure the target USB is inserted and mounted." | tee -a "${BACKUP_LOG}"
+      echo "    (Only removable devices (RM=1) are shown — internal drives are excluded.)" | tee -a "${BACKUP_LOG}"
       exit 1
     fi
     backup_to_path "${USB_PATH}"

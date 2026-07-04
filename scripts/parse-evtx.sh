@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # parse-evtx.sh — Parse Windows Event Log files (.evtx) from Linux
-# Uses python-evtx to extract and analyze event logs
+# Uses python-evtx to extract and analyze event logs (case-insensitive paths)
 set -e
 
-MOUNT="/mnt/windows"
-LOGS_DIR="/opt/rescue/logs"
-EVTX_DIR="${MOUNT}/Windows/System32/winevt/Logs"
+source "$(dirname "$0")/utils.sh"
+
+EVTX_DIR=""
 OUTPUT_DIR="${LOGS_DIR}/event-logs"
 mkdir -p "${OUTPUT_DIR}" "${LOGS_DIR}"
 
@@ -13,17 +13,27 @@ echo "=== Windows Event Log Parser ===" | tee "${LOGS_DIR}/parse-evtx.log"
 echo "Date: $(date)" | tee -a "${LOGS_DIR}/parse-evtx.log"
 echo "" | tee -a "${LOGS_DIR}/parse-evtx.log"
 
-if ! mountpoint -q "${MOUNT}"; then
-  echo "[!] Windows not mounted." | tee -a "${LOGS_DIR}/parse-evtx.log"
-  exit 1
+verify_mount || exit 1
+
+# Case-insensitive resolution of the event log directory
+WIN_DIR=$(find_ci "${MOUNT}" 1 "Windows")
+if [ -n "${WIN_DIR}" ]; then
+    SYS32_DIR=$(find_ci "${WIN_DIR}" 1 "System32")
+    if [ -n "${SYS32_DIR}" ]; then
+        EVTX_DIR=$(find_ci "${SYS32_DIR}" 1 "winevt")
+        if [ -n "${EVTX_DIR}" ]; then
+            LOGS_SUBDIR=$(find_ci "${EVTX_DIR}" 1 "Logs")
+            [ -n "${LOGS_SUBDIR}" ] && EVTX_DIR="${LOGS_SUBDIR}"
+        fi
+    fi
 fi
 
-if [ ! -d "${EVTX_DIR}" ]; then
-  echo "[!] Event log directory not found: ${EVTX_DIR}" | tee -a "${LOGS_DIR}/parse-evtx.log"
-  exit 1
+if [ -z "${EVTX_DIR}" ] || [ ! -d "${EVTX_DIR}" ]; then
+    echo "[!] Event log directory not found (tried case-insensitive)." | tee -a "${LOGS_DIR}/parse-evtx.log"
+    exit 1
 fi
 
-echo "[+] Found event logs in ${EVTX_DIR}" | tee -a "${LOGS_DIR}/parse-evtx.log"
+echo "[+] Resolved event logs: ${EVTX_DIR}" | tee -a "${LOGS_DIR}/parse-evtx.log"
 
 # Check and install python-evtx safely
 if ! python3 -c "import Evtx" 2>/dev/null; then
@@ -44,11 +54,8 @@ for logname in System Application Security; do
   echo "" | tee -a "${LOGS_DIR}/parse-evtx.log"
   echo "--- ${logname}.evtx ($(stat -c%s "${EVTX_FILE}") bytes) ---" | tee -a "${LOGS_DIR}/parse-evtx.log"
   
-  # Extract errors and warnings safely via inline python
   python3 -c "
-import json
-import sys
-import re
+import json, sys, re
 from Evtx.Evtx import Evtx
 
 evtx_file = '${EVTX_FILE}'
@@ -56,42 +63,25 @@ try:
     with Evtx(evtx_file) as log:
         errors = []
         count = 0
-        
         for record in log.records():
             count += 1
             xml = record.xml()
-            
-            # Regex — works on FULL XML, not truncated
             level_match = re.search(r'<Level>([123])</Level>', xml)
-            is_error_str = 'Error' in xml or 'Critical' in xml
-            
-            if level_match or is_error_str:
-                # Pull EventID from the complete XML string
+            if level_match or 'Error' in xml or 'Critical' in xml:
                 evt_id_match = re.search(r'<EventID.*?>(.*?)</EventID>', xml)
                 evt_id = evt_id_match.group(1) if evt_id_match else '?'
-                
-                # Gather up to 3 context data points
                 data_points = re.findall(r'<Data.*?>(.*?)</Data>', xml)[:3]
                 cleaned_data = [d.strip() for d in data_points if len(d.strip()) < 80]
-                
                 errors.append({
-                    'id': count,
-                    'event_id': evt_id,
+                    'id': count, 'event_id': evt_id,
                     'data': cleaned_data,
                     'snippet': xml[:400].replace('\n', ' ').strip()
                 })
-                
-            if count > 50000:  # Circuit breaker
-                break
-        
+            if count > 50000: break
         print(f'    Total records scanned: {count}')
         print(f'    Errors/Warnings found: {len(errors)}')
-        
-        # Save to JSON
         with open('${JSON_OUT}', 'w') as f:
             json.dump(errors, f, indent=2)
-            
-        # Display last 10 errors
         if errors:
             print('\n    Last 10 errors/warnings:')
             for e in errors[-10:]:

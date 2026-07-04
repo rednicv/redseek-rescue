@@ -39,10 +39,12 @@ else
 fi
 echo ""
 
-# Clean previous build
-rm -rf "${BUILD_DIR}" "${OUTPUT_DIR}"
+# Clean previous build — unmount chroot virtual filesystems first
+for mnt in "${BUILD_DIR}"/chroot/dev/pts "${BUILD_DIR}"/chroot/proc "${BUILD_DIR}"/chroot/sys "${BUILD_DIR}"/chroot/dev; do
+    mountpoint -q "$mnt" 2>/dev/null && umount -l "$mnt" 2>/dev/null
+done
+rm -rf "${BUILD_DIR}" "${OUTPUT_DIR}" 2>/dev/null
 mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
-
 # Init live-build config
 cd "${BUILD_DIR}"
 
@@ -132,6 +134,7 @@ network-manager
 # Boot repair
 grub-pc-bin
 grub-efi-amd64-bin
+syslinux-utils
 efibootmgr
 
 # Python / Hermes
@@ -271,6 +274,7 @@ set -eo pipefail
 ISO_SOURCE=""
 for candidate in \
   "${BUILD_DIR}/live-image-amd64.hybrid.iso" \
+  "${BUILD_DIR}/chroot/binary.hybrid.iso" \
   "${BUILD_DIR}/binary.hybrid.iso" \
   "${BUILD_DIR}"/*.iso; do
   if [ -f "$candidate" ]; then

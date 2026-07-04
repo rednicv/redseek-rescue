@@ -12,7 +12,7 @@ Built with **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** + **
   │  from    │     │  setup   │     │  DeepSeek │     │  Windows │
   │  USB     │     │          │     │  key      │     │          │
   └──────────┘     └──────────┘     └───────────┘     └──────────┘
-                         │                                      
+                         │
                          └──▶ Manual mode (no AI needed)
 ```
 
@@ -24,20 +24,21 @@ Built with **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** + **
 - **AI assistant** — describes problems, suggests fixes, runs tools for you
 - **All-in-one toolkit** — diagnostics, antivirus, registry editing, password recovery, and more
 - **Offline-capable** — works without internet for most tools; AI needs connectivity
+- **Safe by design** — read-only checks first, backups before changes, case-insensitive NTFS handling
 
 ## 🧰 Tools Included
 
-| Category | Tools |
-|---|---|
-| **Mount & Access** | NTFS mount, BitLocker decryption (dislocker), Volume Shadow Copy |
-| **Diagnostics** | SMART disk health, RAM test, CPU stress, temperatures, boot check |
-| **Antivirus** | ClamAV, chkrootkit, rkhunter; Wine-based portable AV downloader |
-| **Windows Repair** | Offline registry editor (hivex), stuck-updates cleanup, file signature verification |
-| **Data Recovery** | Restore points mounting, backup to USB/cloud (rclone), Event Log parser |
-| **Password Recovery** | chntpw + utilman.exe hack |
-| **Connectivity** | WiFi setup from terminal |
+| Category | Tools | Scripts |
+|---|---|---|
+| **Mount & Access** | NTFS mount (ntfs3/ntfs-3g), BitLocker decryption (dislocker), Volume Shadow Copy, hiberfile removal | `mount-windows.sh`, `unmount-windows.sh`, `shadow-copy.sh` |
+| **Diagnostics** | SMART disk health, RAM test, CPU stress, temperatures, boot file integrity, BSOD minidump analysis | `diagnose.sh`, `check-windows.sh`, `hardware-diagnostics.sh` |
+| **Antivirus** | ClamAV, chkrootkit, rkhunter; Wine-based portable AV downloader | `scan-windows.sh`, `download-antivirus.sh` |
+| **Windows Repair** | Offline registry editor (hivex), stuck-updates cleanup, file signature verification | `registry-tools.sh`, `cleanup-updates.sh`, `verify-files.sh` |
+| **Data Recovery** | Restore points mounting, backup to USB/cloud (rclone), Event Log parser | `backup-data.sh`, `parse-evtx.sh` |
+| **Password Recovery** | chntpw + utilman.exe hack | `reset-password.sh` |
+| **Connectivity** | WiFi setup from terminal with universal firmware | `wifi-connect.sh` |
 
-Full list: see `scripts/` directory.
+All scripts handle case-insensitive NTFS paths and detect read-only mounts (Fast Startup/hibernation).
 
 ## 📦 Quick Start
 
@@ -48,37 +49,14 @@ Full list: see `scripts/` directory.
 
 ### Build
 
-#### On Linux (native or VPS)
-
 ```bash
-# Install build dependencies (Ubuntu/Debian)
 sudo apt update && sudo apt install -y live-build syslinux-utils python3-yaml git
-
-# Clone and build
 git clone https://github.com/rednicv/redseek-rescue.git
 cd redseek-rescue
 ./build.sh
-# → output/redseek-rescue-v1.0.iso (~10-20 min)
 ```
 
-#### On Windows (WSL2)
-
-```bash
-# 1. From PowerShell (as Admin): install WSL2
-wsl --install -d Ubuntu-24.04
-
-# 2. Inside the WSL terminal:
-sudo apt update && sudo apt install -y live-build syslinux-utils python3-yaml git
-cd ~                                    # IMPORTANT: NOT /mnt/c/ !
-git clone https://github.com/rednicv/redseek-rescue.git
-cd redseek-rescue
-./build.sh
-
-# 3. Copy ISO to Windows desktop
-cp output/redseek-rescue-v1.0.iso /mnt/c/Users/Rednic/Desktop/
-```
-
-> ⚠️ **WSL2 pitfalls:** Clone inside `~/` (Linux filesystem), NOT `/mnt/c/`. Install `syslinux-utils` before building (isohybrid). If rebuild fails, run `sudo rm -rf build/` first.
+> ⚠️ **WSL2 pitfalls:** Clone inside `~/` (Linux filesystem), NOT `/mnt/c/`. Install `syslinux-utils` before building (isohybrid).
 
 ### Write to USB
 
@@ -87,18 +65,16 @@ cp output/redseek-rescue-v1.0.iso /mnt/c/Users/Rednic/Desktop/
 Quick reference:
 
 1. Download the ISO
-2. **Rufus** (Windows) → select ISO → Write (hybrid ISO, works in standard ISO mode)
-3. Or: `sudo dd if=redseek-rescue-v1.0.iso of=/dev/sdX bs=4M status=progress` (Linux/macOS)
+2. **Rufus** (Windows) → select ISO → Write
+3. Or use `dd` on Linux/macOS (see INSTALL.md)
 
 ### Boot
 
 1. Insert USB into the broken PC
 2. Enter BIOS/UEFI (F2/F12/Del at boot)
 3. Select USB as boot device
-4. Wait for Ubuntu Live to load
-5. **Hermes starts automatically** — it will greet you and ask for a DeepSeek API key
-6. Get a free key at [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) (free credits on signup)
-7. Paste the key — Hermes saves it and starts diagnosing
+4. Hermes starts automatically — asks for your DeepSeek API key
+5. Get a free key at [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys)
 
 ## 📁 Project Structure
 
@@ -106,41 +82,42 @@ Quick reference:
 redseek-rescue/
 ├── build.sh                     # ISO build script
 ├── config/
-│   ├── hermes-config.yaml       # Hermes agent config (set your DeepSeek key)
+│   ├── hermes-config.yaml       # Hermes agent config
 │   └── rescue-prompt.txt        # System prompt for the AI rescue agent
 ├── scripts/
-│   ├── mount-windows.sh         # Mount NTFS partitions, detect BitLocker
+│   ├── utils.sh                 # Shared helpers (find_ci, verify_mount, is_readonly)
+│   ├── mount-windows.sh         # Mount NTFS, BitLocker, remove hiberfile
 │   ├── unmount-windows.sh       # Safe unmount
 │   ├── diagnose.sh              # Quick/full system diagnostics
-│   ├── check-windows.sh         # Deep Windows filesystem check
+│   ├── check-windows.sh         # Deep Windows filesystem check (case-insensitive)
 │   ├── registry-tools.sh        # Offline registry editing
 │   ├── reset-password.sh        # Windows password removal/reset
-│   ├── parse-evtx.sh            # Event Log → JSON
-│   ├── cleanup-updates.sh       # Fix stuck Windows updates
+│   ├── parse-evtx.sh            # Event Log → JSON (case-insensitive paths)
+│   ├── cleanup-updates.sh       # Fix stuck Windows updates (RO-aware)
 │   ├── shadow-copy.sh           # Mount restore points
 │   ├── verify-files.sh          # System file signature check
 │   ├── scan-windows.sh          # ClamAV virus scan
 │   ├── download-antivirus.sh    # Portable AV via Wine
-│   ├── backup-data.sh           # Backup to USB or cloud (rclone)
+│   ├── backup-data.sh           # Backup to USB (removable-only) or cloud (rclone)
 │   ├── hardware-diagnostics.sh  # RAM, CPU, disk stress tests
 │   └── wifi-connect.sh          # WiFi setup
 ├── iso-overlay/                 # Extra files for the ISO
 └── output/                      # Built ISOs
-    └── redseek-rescue-v1.0.iso
 ```
 
 ## 🔧 Tech Stack
 
 - **Base:** Ubuntu Noble (24.04) live-build
 - **AI:** [Hermes Agent](https://github.com/NousResearch/hermes-agent) with DeepSeek v4
-- **Key packages:** ntfs-3g, dislocker, chntpw, python3-hivex, python3-evtx, ClamAV, testdisk, ddrescue, smartmontools, libvshadow, osslsigncode, Wine, rclone
+- **Key packages:** ntfs-3g, dislocker, chntpw, python3-hivex, python3-evtx, ClamAV, testdisk, smartmontools, libvshadow, osslsigncode, Wine, rclone
 
 ## ⚠️ Limitations
 
-- **Build must be on amd64** — cross-architecture builds (ARM → amd64) are not supported out of the box
-- **BitLocker** requires the recovery key (48-digit) or password
-- **Wine-based AV tools** may have limited detection rates compared to native Windows
+- **Build must be on amd64** — cross-architecture builds not supported
+- **BitLocker** requires recovery key (48-digit) or password
+- **Wine-based AV tools** may have limited detection vs native Windows
 - **AI needs internet** — DeepSeek API runs in the cloud
+- **Fast Startup** can cause read-only mounts — use `--remove-hiberfile` or shut down Windows fully
 
 ## 📝 License
 
@@ -149,18 +126,6 @@ MIT — do whatever you want, just keep the attribution. See [LICENSE](LICENSE).
 ## 📋 Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
-
-## 🤝 Contributing
-
-Pull requests welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 🔒 Security
-
-Found a vulnerability? See [SECURITY.md](SECURITY.md) for how to report it responsibly.
-
-## 📜 Code of Conduct
-
-Be helpful. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ---
 

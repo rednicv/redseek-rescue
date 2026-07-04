@@ -2,6 +2,21 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.0.2] — 2026-07-04
+
+### Fixed
+- **Case-insensitive Windows paths** — `check-windows.sh` and `parse-evtx.sh` now resolve `Windows/System32` case-insensitively (handles `windows/system32`, `WINDOWS/SYSTEM32`, etc. on real NTFS volumes).
+- **Fast Startup / hibernation detection** — `cleanup-updates.sh` now checks mount status before attempting writes; exits gracefully with fix instructions if Windows is read-only.
+- **USB detection in backup** — `backup-data.sh` now uses `lsblk -no RM` (removable flag) to detect real USB drives, no longer misidentifies internal HDDs/NVMe.
+
+### Added
+- **`--remove-hiberfile` flag** in `mount-windows.sh` — attempts to delete `hiberfil.sys` before mounting, fixing "Windows is hibernated" read-only mounts.
+- **`scripts/utils.sh`** — shared helper library with `find_ci()`, `verify_mount()`, and `is_readonly()` functions used by all rescue scripts.
+- **Expanded README tools table** — added detailed descriptions and script names for each tool category.
+
+### Changed
+- Refactored `check-windows.sh`, `parse-evtx.sh`, `cleanup-updates.sh`, `mount-windows.sh`, and `backup-data.sh` to source `utils.sh` instead of duplicating helper functions.
+
 ## [1.0.1] — 2026-07-04
 
 ### Fixed
