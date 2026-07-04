@@ -301,3 +301,20 @@ cp "${ISO_SOURCE}" "${OUTPUT_DIR}/${ISO_NAME}.iso"
 echo ""
 echo "=== ✅ ISO ready: ${OUTPUT_DIR}/${ISO_NAME}.iso ==="
 ls -lh "${OUTPUT_DIR}/${ISO_NAME}.iso"
+
+# Verify bootability — fallback to make-iso.sh if live-build failed
+echo ""
+echo "[*] Checking bootability..."
+if command -v xorriso &>/dev/null; then
+  if xorriso -indev "${OUTPUT_DIR}/${ISO_NAME}.iso" -report_el_torito plain 2>&1 | grep -qi "el torito"; then
+    echo "[✅] ISO is bootable (El Torito found)"
+  else
+    echo "[!] ISO not bootable — rebuilding with xorriso manual..."
+    bash "${ROOT_DIR}/make-iso.sh" "${ISO_NAME}"
+  fi
+else
+  echo "[!] xorriso not available — bootability check skipped"
+fi
+
+echo ""
+echo "=== ✅ Build complete ==="
