@@ -43,25 +43,42 @@ Full list: see `scripts/` directory.
 
 ### Requirements
 
-- **Build machine:** Linux amd64 (Ubuntu/Debian recommended), 4+ GB RAM, 10 GB free disk
+- **Build machine:** Linux amd64 (Ubuntu/Debian, including WSL2), 4+ GB RAM, 10 GB free disk
 - **Target machine:** Any PC that can boot from USB (BIOS or UEFI)
 
 ### Build
 
+#### On Linux (native or VPS)
+
 ```bash
 # Install build dependencies (Ubuntu/Debian)
-sudo apt update && sudo apt install -y live-build
+sudo apt update && sudo apt install -y live-build syslinux-utils python3-yaml git
 
 # Clone and build
-git clone git@github.com:rednicv/redseek-rescue.git
+git clone https://github.com/rednicv/redseek-rescue.git
 cd redseek-rescue
-
-# Set your DeepSeek API key
-# Edit config/hermes-config.yaml or let build.sh auto-detect it from ~/.hermes/config.yaml
-
 ./build.sh
 # → output/redseek-rescue-v1.0.iso (~10-20 min)
 ```
+
+#### On Windows (WSL2)
+
+```bash
+# 1. From PowerShell (as Admin): install WSL2
+wsl --install -d Ubuntu-24.04
+
+# 2. Inside the WSL terminal:
+sudo apt update && sudo apt install -y live-build syslinux-utils python3-yaml git
+cd ~                                    # IMPORTANT: NOT /mnt/c/ !
+git clone https://github.com/rednicv/redseek-rescue.git
+cd redseek-rescue
+./build.sh
+
+# 3. Copy ISO to Windows desktop
+cp output/redseek-rescue-v1.0.iso /mnt/c/Users/Rednic/Desktop/
+```
+
+> ⚠️ **WSL2 pitfalls:** Clone inside `~/` (Linux filesystem), NOT `/mnt/c/`. Install `syslinux-utils` before building (isohybrid). If rebuild fails, run `sudo rm -rf build/` first.
 
 ### Write to USB
 
@@ -70,7 +87,7 @@ cd redseek-rescue
 Quick reference:
 
 1. Download the ISO
-2. **Rufus** (Windows) → select ISO → **DD Image mode** → Write
+2. **Rufus** (Windows) → select ISO → Write (hybrid ISO, works in standard ISO mode)
 3. Or: `sudo dd if=redseek-rescue-v1.0.iso of=/dev/sdX bs=4M status=progress` (Linux/macOS)
 
 ### Boot

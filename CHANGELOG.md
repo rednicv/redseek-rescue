@@ -2,6 +2,15 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.0.1] — 2026-07-04
+
+### Fixed
+- **isohybrid missing from build** — ISO was UEFI-only; Rufus rejected it as non-bootable. Added `syslinux-utils` to build dependencies so hybrid ISO (BIOS + UEFI) is generated correctly.
+
+### Added
+- **WSL2 build support** — documented step-by-step for building on Windows via WSL2 (Ubuntu).
+- **WSL2 pitfalls** documented: clone in `~/` not `/mnt/c/`, install `syslinux-utils` before build, cache owned by root.
+
 ## [1.0.0] — 2026-07-03
 
 ### Added
