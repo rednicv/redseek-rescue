@@ -255,42 +255,43 @@ echo ""
 MOTD
 chmod +x "${BUILD_DIR}/config/includes.chroot/etc/update-motd.d/99-redseek-rescue"
 
-# Hide real isohybrid from live-build's binary.sh (it can't find it in subshell)
-# We'll apply it manually after build
-if [ -f /usr/bin/isohybrid ]; then
-  sudo mv /usr/bin/isohybrid /usr/bin/isohybrid.real
-fi
-sudo ln -sf /bin/true /usr/bin/isohybrid
-
 # Build the ISO
 echo ""
 echo "=== Building ISO (this takes a while) ==="
 echo ""
 
 cd "${BUILD_DIR}"
+# Allow build to complete even if binary.sh fails (isohybrid not in chroot)
+set +eo pipefail
 sudo lb build 2>&1 | tee "${ROOT_DIR}/build.log"
+BUILD_EXIT=$?
+set -eo pipefail
 
-# Restore real isohybrid
-sudo rm -f /usr/bin/isohybrid
-if [ -f /usr/bin/isohybrid.real ]; then
-  sudo mv /usr/bin/isohybrid.real /usr/bin/isohybrid
-fi
+# Find the ISO (live-build may name it differently)
+ISO_SOURCE=""
+for candidate in \
+  "${BUILD_DIR}/live-image-amd64.hybrid.iso" \
+  "${BUILD_DIR}/binary.hybrid.iso" \
+  "${BUILD_DIR}"/*.iso; do
+  if [ -f "$candidate" ]; then
+    ISO_SOURCE="$candidate"
+    break
+  fi
+done
 
-# Apply isohybrid manually for BIOS boot support
-ISO_SOURCE="${BUILD_DIR}/binary.hybrid.iso"
-if [ -f "${ISO_SOURCE}" ]; then
-  echo ""
-  echo "=== Applying isohybrid for BIOS boot support ==="
-  sudo isohybrid "${ISO_SOURCE}" || echo "[!] isohybrid failed — ISO may not boot on BIOS systems"
-fi
-
-# Copy result
-if [ -f "${BUILD_DIR}/live-image-amd64.hybrid.iso" ]; then
-  cp "${BUILD_DIR}/live-image-amd64.hybrid.iso" "${OUTPUT_DIR}/${ISO_NAME}.iso"
-  echo ""
-  echo "=== ✅ ISO ready: ${OUTPUT_DIR}/${ISO_NAME}.iso ==="
-  ls -lh "${OUTPUT_DIR}/${ISO_NAME}.iso"
-else
-  echo "=== ❌ Build failed. Check build.log ==="
+if [ -z "${ISO_SOURCE}" ]; then
+  echo "=== ❌ Build failed — no ISO found. Check build.log ==="
   exit 1
 fi
+
+# Apply isohybrid for BIOS/CSM boot (hybrid ISO)
+echo ""
+echo "=== Applying isohybrid for BIOS boot support ==="
+sudo isohybrid "${ISO_SOURCE}" 2>/dev/null || echo "[!] isohybrid skipped — UEFI-only ISO"
+
+# Copy result
+mkdir -p "${OUTPUT_DIR}"
+cp "${ISO_SOURCE}" "${OUTPUT_DIR}/${ISO_NAME}.iso"
+echo ""
+echo "=== ✅ ISO ready: ${OUTPUT_DIR}/${ISO_NAME}.iso ==="
+ls -lh "${OUTPUT_DIR}/${ISO_NAME}.iso"
