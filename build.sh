@@ -255,6 +255,13 @@ echo ""
 MOTD
 chmod +x "${BUILD_DIR}/config/includes.chroot/etc/update-motd.d/99-redseek-rescue"
 
+# Hide real isohybrid from live-build's binary.sh (it can't find it in subshell)
+# We'll apply it manually after build
+if [ -f /usr/bin/isohybrid ]; then
+  sudo mv /usr/bin/isohybrid /usr/bin/isohybrid.real
+fi
+sudo ln -sf /bin/true /usr/bin/isohybrid
+
 # Build the ISO
 echo ""
 echo "=== Building ISO (this takes a while) ==="
@@ -263,7 +270,13 @@ echo ""
 cd "${BUILD_DIR}"
 sudo lb build 2>&1 | tee "${ROOT_DIR}/build.log"
 
-# Apply isohybrid manually (live-build binary.sh often can't find it in subshell)
+# Restore real isohybrid
+sudo rm -f /usr/bin/isohybrid
+if [ -f /usr/bin/isohybrid.real ]; then
+  sudo mv /usr/bin/isohybrid.real /usr/bin/isohybrid
+fi
+
+# Apply isohybrid manually for BIOS boot support
 ISO_SOURCE="${BUILD_DIR}/binary.hybrid.iso"
 if [ -f "${ISO_SOURCE}" ]; then
   echo ""
