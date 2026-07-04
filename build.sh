@@ -263,6 +263,14 @@ echo ""
 cd "${BUILD_DIR}"
 sudo lb build 2>&1 | tee "${ROOT_DIR}/build.log"
 
+# Apply isohybrid manually (live-build binary.sh often can't find it in subshell)
+ISO_SOURCE="${BUILD_DIR}/binary.hybrid.iso"
+if [ -f "${ISO_SOURCE}" ]; then
+  echo ""
+  echo "=== Applying isohybrid for BIOS boot support ==="
+  sudo isohybrid "${ISO_SOURCE}" || echo "[!] isohybrid failed — ISO may not boot on BIOS systems"
+fi
+
 # Copy result
 if [ -f "${BUILD_DIR}/live-image-amd64.hybrid.iso" ]; then
   cp "${BUILD_DIR}/live-image-amd64.hybrid.iso" "${OUTPUT_DIR}/${ISO_NAME}.iso"
