@@ -39,12 +39,15 @@ else
 fi
 echo ""
 
-# Clean previous build — unmount chroot virtual filesystems first
-for mnt in "${BUILD_DIR}"/chroot/dev/pts "${BUILD_DIR}"/chroot/proc "${BUILD_DIR}"/chroot/sys "${BUILD_DIR}"/chroot/dev; do
-    mountpoint -q "$mnt" 2>/dev/null && umount -l "$mnt" 2>/dev/null
-done
-rm -rf "${BUILD_DIR}" "${OUTPUT_DIR}" 2>/dev/null
+# Check build host dependencies
+echo "[*] Checking build host dependencies..."
+sudo apt-get install -y mtools xorriso 2>/dev/null || true
+echo ""
+
+# Clean previous build
+rm -rf "${BUILD_DIR}" "${OUTPUT_DIR}"
 mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
+
 # Init live-build config
 cd "${BUILD_DIR}"
 
@@ -52,7 +55,8 @@ lb config \
   --distribution noble \
   --architectures amd64 \
   --archive-areas "main universe multiverse restricted" \
-  --bootloader grub-efi \
+  --binary-images iso-hybrid \
+  --bootloader grub-pc,grub-efi \
   --bootappend-live "boot=live components locales=ro_RO.UTF-8 keyboard-layouts=ro username=rescue user-fullname=Rescue" \
   --debian-installer false \
   --memtest none \
@@ -89,6 +93,8 @@ parted
 gdisk
 dosfstools
 e2fsprogs
+mtools
+xorriso
 
 # BitLocker decryption
 dislocker
@@ -121,7 +127,6 @@ htop
 iotop
 pv
 dialog
-zenity
 unzip
 zip
 p7zip-full
@@ -135,7 +140,6 @@ network-manager
 # Boot repair
 grub-pc-bin
 grub-efi-amd64-bin
-syslinux-utils
 efibootmgr
 
 # Python / Hermes
@@ -265,17 +269,13 @@ echo "=== Building ISO (this takes a while) ==="
 echo ""
 
 cd "${BUILD_DIR}"
-# Allow build to complete even if binary.sh fails (isohybrid not in chroot)
-set +eo pipefail
 sudo lb build 2>&1 | tee "${ROOT_DIR}/build.log"
 BUILD_EXIT=$?
-set -eo pipefail
 
 # Find the ISO (live-build may name it differently)
 ISO_SOURCE=""
 for candidate in \
   "${BUILD_DIR}/live-image-amd64.hybrid.iso" \
-  "${BUILD_DIR}/chroot/binary.hybrid.iso" \
   "${BUILD_DIR}/binary.hybrid.iso" \
   "${BUILD_DIR}"/*.iso; do
   if [ -f "$candidate" ]; then
@@ -288,11 +288,6 @@ if [ -z "${ISO_SOURCE}" ]; then
   echo "=== ❌ Build failed — no ISO found. Check build.log ==="
   exit 1
 fi
-
-# Apply isohybrid for BIOS/CSM boot (hybrid ISO)
-echo ""
-echo "=== Applying isohybrid for BIOS boot support ==="
-sudo isohybrid "${ISO_SOURCE}" 2>/dev/null || echo "[!] isohybrid skipped — UEFI-only ISO"
 
 # Copy result
 mkdir -p "${OUTPUT_DIR}"
