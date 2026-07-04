@@ -2,6 +2,17 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.3.0] — 2026-07-04
+
+### Fixed
+- **ISO bootabil hibrid (BIOS + UEFI)** — El Torito boot catalog funcțional
+- live-build 3.0 produce ISO fără boot → build manual cu xorriso
+- GRUB BIOS via core.img + GRUB EFI via BOOTx64.EFI
+
+### Added
+- Script `make-iso.sh` pentru build manual post-live-build
+- Suport GPT hybrid ISO (bootabil de pe USB fără `dd` special)
+
 ## [1.1.0] — 2026-07-04
 
 ### Added (TOP 5 — DeepSeek + Gemini collaboration)
