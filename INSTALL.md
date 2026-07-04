@@ -40,6 +40,7 @@ Rufus is the recommended tool for writing the ISO to USB on Windows.
 5. Under "Target system", leave it on **BIOS or UEFI**
 6. Click **START**
 7. ⚠️ **IMPORTANT:** If Rufus asks *"Write in ISO Image mode or DD Image mode?"*, choose **DD Image mode**!
+   > **Note:** DD Image mode makes the USB partition invisible in Windows after writing. This is normal! To recover the USB later: open Windows Disk Management → right-click the USB → format as FAT32/NTFS.
 8. Confirm any warnings (Rufus will erase the USB — make sure it's empty)
 
 ```

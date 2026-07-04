@@ -2,6 +2,7 @@
 # auto-diagnose.sh — Intelligent problem detection from EventLog + minidump + SMART
 # Analyzes available data and generates a hypothesis with confidence score.
 # Usage: ./auto-diagnose.sh
+set -euo pipefail
 
 source "$(dirname "$0")/utils.sh"
 
@@ -51,7 +52,7 @@ for dev in /dev/sd[a-z] /dev/nvme[0-9]n[0-9]; do
     
     # Check reallocated sectors
     REALLOC=$(smartctl -A "${dev}" 2>/dev/null | grep -i "Reallocated_Sector" | awk '{print $NF}' || echo "0")
-    if [ "${REALLOC}" != "0" ] && [ "${REALLOC}" -gt 10 ] 2>/dev/null; then
+    if [[ "${REALLOC}" =~ ^[0-9]+$ ]] && [ "${REALLOC}" -gt 10 ]; then
         add_evidence "disk_failing" 15 "${dev}: ${REALLOC} sectoare realocate"
     fi
 done
@@ -63,7 +64,9 @@ WIN_DIR=$(find_ci "${MOUNT}" 1 "Windows" 2>/dev/null || echo "")
 if [ -n "${WIN_DIR}" ]; then
     DUMP_DIR=$(find_ci "${WIN_DIR}" 1 "Minidump" 2>/dev/null || echo "")
     if [ -n "${DUMP_DIR}" ] && [ -d "${DUMP_DIR}" ]; then
-        DUMP_COUNT=$(ls -1 "${DUMP_DIR}"/*.dmp 2>/dev/null | wc -l)
+        shopt -s nullglob
+        DUMPS=("${DUMP_DIR}"/*.dmp)
+        DUMP_COUNT=${#DUMPS[@]}
         if [ "${DUMP_COUNT}" -gt 0 ]; then
             add_evidence "driver_fault" $((DUMP_COUNT * 5)) "${DUMP_COUNT} minidump-uri găsite → BSOD recurent"
             echo "  ⚠️  ${DUMP_COUNT} BSOD minidump(s) found" >> "${OUTPUT}"
@@ -99,10 +102,10 @@ if [ -n "${WIN_DIR}" ]; then
                 MEMORY=$(strings "${EVTX_FILE}" 2>/dev/null | grep -ciE "memory|MEMORY_MANAGEMENT|page fault" || echo 0)
                 BOOT=$(strings "${EVTX_FILE}" 2>/dev/null | grep -ciE "boot|winload|bcd|bootmgr" || echo 0)
                 
-                [ "${ERRORS}" -gt 5 ] 2>/dev/null && add_evidence "filesystem_corrupt" 10 "${log}.evtx: ${ERRORS} NTFS/disk errors"
-                [ "${DRIVERS}" -gt 3 ] 2>/dev/null && add_evidence "driver_fault" 10 "${log}.evtx: ${DRIVERS} driver failures"
-                [ "${MEMORY}" -gt 2 ] 2>/dev/null && add_evidence "memory_fault" 10 "${log}.evtx: ${MEMORY} memory errors"
-                [ "${BOOT}" -gt 3 ] 2>/dev/null && add_evidence "boot_corrupt" 10 "${log}.evtx: ${BOOT} boot errors"
+                [[ "${ERRORS}" =~ ^[0-9]+$ && "${ERRORS}" -gt 5 ]] && add_evidence "filesystem_corrupt" 10 "${log}.evtx: ${ERRORS} NTFS/disk errors"
+                [[ "${DRIVERS}" =~ ^[0-9]+$ && "${DRIVERS}" -gt 3 ]] && add_evidence "driver_fault" 10 "${log}.evtx: ${DRIVERS} driver failures"
+                [[ "${MEMORY}" =~ ^[0-9]+$ && "${MEMORY}" -gt 2 ]] && add_evidence "memory_fault" 10 "${log}.evtx: ${MEMORY} memory errors"
+                [[ "${BOOT}" =~ ^[0-9]+$ && "${BOOT}" -gt 3 ]] && add_evidence "boot_corrupt" 10 "${log}.evtx: ${BOOT} boot errors"
             done
         fi
     fi

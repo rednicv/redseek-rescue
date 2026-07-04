@@ -38,7 +38,7 @@ usage() {
 }
 
 FOLDERS=("Desktop" "Documents" "Downloads" "Pictures" "Music" "Videos" "OneDrive")
-USERS_DIR="${MOUNT}/Users"
+USERS_DIR=$(find_ci "${MOUNT}" 1 "Users" 2>/dev/null || echo "${MOUNT}/Users")
 
 backup_to_path() {
   DEST="$1"

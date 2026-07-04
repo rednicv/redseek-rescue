@@ -23,11 +23,16 @@ if [ ! -f "${CONFIG_DIR}/hermes-config.yaml" ]; then
   cp "${CONFIG_DIR}/hermes-config.yaml.example" "${CONFIG_DIR}/hermes-config.yaml"
 fi
 DEEPSEEK_KEY=$(python3 -c "
-import os, yaml
-home = os.path.expanduser('~')
-with open(f'{home}/.hermes/config.yaml') as f:
-    c = yaml.safe_load(f)
-print(c['providers']['deepseek']['api_key'])
+import os, yaml, pwd
+# When run via sudo, resolve the real user's home directory
+real_user = os.environ.get('SUDO_USER') or os.environ.get('USER', 'root')
+homedir = pwd.getpwnam(real_user).pw_dir if real_user != 'root' else '/root'
+try:
+    with open(f'{homedir}/.hermes/config.yaml') as f:
+        c = yaml.safe_load(f)
+    print(c['providers']['deepseek']['api_key'])
+except Exception:
+    pass
 " 2>/dev/null || echo "")
 
 if [ -z "${DEEPSEEK_KEY}" ]; then
@@ -74,6 +79,7 @@ openssh-server
 curl
 wget
 git
+rsync
 
 # WiFi firmware (Broadcom, Atheros, Intel)
 linux-firmware
