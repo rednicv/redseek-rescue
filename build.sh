@@ -121,6 +121,7 @@ htop
 iotop
 pv
 dialog
+zenity
 unzip
 zip
 p7zip-full

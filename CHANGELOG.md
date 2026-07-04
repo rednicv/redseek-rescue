@@ -2,45 +2,36 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.1.0] — 2026-07-04
+
+### Added (TOP 5 — DeepSeek + Gemini collaboration)
+- **rescue-playbook.sh** — Intelligent symptom-to-fix orchestrator. User describes symptom ("boot loop", "bluescreen", "virus"), playbook runs the correct scripts in order. 12 predefined playbooks + full diagnostic mode.
+- **snapshot-system.sh** — Backup critical Windows files (registry hives, BCD, boot files) before repairs. Timestamped snapshots with one-command rollback.
+- **rescue-gui.sh** — Zenity-based graphical interface. One-Click Health Check + visual menu for all 12 repair categories. Auto-mounts Windows if needed.
+- **auto-diagnose.sh** — Intelligent problem detection. Analyzes SMART, minidumps, Event Log, stuck updates, boot files, and registry hives. Generates ranked hypothesis with confidence scores.
+- **repair-boot.sh** — Windows boot repair from Linux. Detects EFI/BIOS mode, checks MBR/BCD/winload/ntoskrnl, verifies critical drivers. Suggests Windows recovery commands for missing files.
+
+### Changed
+- Added `zenity` to build dependencies (for GUI mode)
+- Build script now includes 21 rescue scripts (up from 16)
+
 ## [1.0.2] — 2026-07-04
 
 ### Fixed
-- **Case-insensitive Windows paths** — `check-windows.sh` and `parse-evtx.sh` now resolve `Windows/System32` case-insensitively (handles `windows/system32`, `WINDOWS/SYSTEM32`, etc. on real NTFS volumes).
-- **Fast Startup / hibernation detection** — `cleanup-updates.sh` now checks mount status before attempting writes; exits gracefully with fix instructions if Windows is read-only.
-- **USB detection in backup** — `backup-data.sh` now uses `lsblk -no RM` (removable flag) to detect real USB drives, no longer misidentifies internal HDDs/NVMe.
+- **Case-insensitive Windows paths** — `check-windows.sh` and `parse-evtx.sh` now resolve paths case-insensitively.
+- **Fast Startup / hibernation detection** — `cleanup-updates.sh` checks mount status before writes.
+- **USB detection in backup** — `backup-data.sh` uses `lsblk -no RM` for real removable drives.
 
 ### Added
-- **`--remove-hiberfile` flag** in `mount-windows.sh` — attempts to delete `hiberfil.sys` before mounting, fixing "Windows is hibernated" read-only mounts.
-- **`scripts/utils.sh`** — shared helper library with `find_ci()`, `verify_mount()`, and `is_readonly()` functions used by all rescue scripts.
-- **Expanded README tools table** — added detailed descriptions and script names for each tool category.
-
-### Changed
-- Refactored `check-windows.sh`, `parse-evtx.sh`, `cleanup-updates.sh`, `mount-windows.sh`, and `backup-data.sh` to source `utils.sh` instead of duplicating helper functions.
+- **`--remove-hiberfile` flag** in `mount-windows.sh`
+- **`scripts/utils.sh`** — shared helper library
 
 ## [1.0.1] — 2026-07-04
 
 ### Fixed
-- **isohybrid missing from build** — ISO was UEFI-only; Rufus rejected it as non-bootable. Added `syslinux-utils` to build dependencies so hybrid ISO (BIOS + UEFI) is generated correctly.
-
-### Added
-- **WSL2 build support** — documented step-by-step for building on Windows via WSL2 (Ubuntu).
-- **WSL2 pitfalls** documented: clone in `~/` not `/mnt/c/`, install `syslinux-utils` before build, cache owned by root.
+- **isohybrid missing from build** — added `syslinux-utils` to build dependencies
 
 ## [1.0.0] — 2026-07-03
 
 ### Added
-- Initial release of RedSeek Rescue
-- Ubuntu Noble (24.04) live-build base
-- 16 rescue scripts for Windows repair
-- Hermes Agent integration with DeepSeek v4
-- Auto-start Hermes at boot with `.profile` recovery loop
-- WiFi-first setup flow with `skip` option for manual mode
-- Key-on-demand: Hermes asks for DeepSeek API key on first boot
-- Universal WiFi firmware (Intel, Broadcom, Atheros) via `restricted` repo
-- User guide skill (`redseek-user-guide`) loaded on the stick
-- BitLocker support via `dislocker`
-- ClamAV antivirus + Wine-based portable AV downloader
-- Comprehensive INSTALL.md with Rufus tutorial
-- Security policy and code of conduct
-
-[1.0.0]: https://github.com/rednicv/redseek-rescue/releases/tag/v1.0.0
+- Initial release — 16 rescue scripts, Ubuntu Noble live-build, Hermes Agent + DeepSeek v4
