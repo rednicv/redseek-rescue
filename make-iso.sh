@@ -79,7 +79,7 @@ xorriso -as mkisofs \
     -eltorito-alt-boot \
     -e EFI/BOOT/BOOTx64.EFI \
     -no-emul-boot \
-    -isohybrid-gpt-basdat \
+    -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
     -o "$ISO_OUT" \
     "$ISO_DIR"
 
