@@ -14,17 +14,44 @@ mkdir -p "$ISO_DIR/EFI/BOOT"
 echo "📦 Copying live files from $BUILD/binary/..."
 cp -a "$BUILD/binary/." "$ISO_DIR/"
 
-echo "📝 Creating GRUB config..."
-cat > "$ISO_DIR/boot/grub/grub.cfg" << 'GRUBEOF'
+# Detect where vmlinuz and initrd are (live/ for Debian, casper/ for Ubuntu)
+KERNEL_DIR="live"
+if [ -d "$ISO_DIR/live" ] && ls "$ISO_DIR/live"/vmlinuz* &>/dev/null; then
+    KERNEL_DIR="live"
+elif [ -d "$ISO_DIR/casper" ] && ls "$ISO_DIR/casper"/vmlinuz* &>/dev/null; then
+    KERNEL_DIR="casper"
+elif ls "$ISO_DIR"/vmlinuz* &>/dev/null; then
+    KERNEL_DIR="."
+fi
+echo "🔍 Kernel found in /$KERNEL_DIR/"
+
+# Rename versioned kernel files to standard names
+if ls "$ISO_DIR/$KERNEL_DIR"/vmlinuz-* &>/dev/null; then
+    mv "$ISO_DIR/$KERNEL_DIR"/vmlinuz-* "$ISO_DIR/$KERNEL_DIR/vmlinuz"
+fi
+if ls "$ISO_DIR/$KERNEL_DIR"/initrd* &>/dev/null; then
+    mv "$ISO_DIR/$KERNEL_DIR"/initrd* "$ISO_DIR/$KERNEL_DIR/initrd.img"
+fi
+
+# Ensure filesystem.squashfs exists
+if [ ! -f "$ISO_DIR/$KERNEL_DIR/filesystem.squashfs" ]; then
+    SQUASHFS=$(find "$ISO_DIR" -name "filesystem.squashfs" -o -name "rootfs.squashfs" 2>/dev/null | head -1)
+    if [ -n "$SQUASHFS" ]; then
+        echo "📦 Found squashfs at: $SQUASHFS"
+    fi
+fi
+
+echo "📝 Creating GRUB config (kernel: /$KERNEL_DIR/)..."
+cat > "$ISO_DIR/boot/grub/grub.cfg" << GRUBEOF
 set timeout=10
 set default=0
 menuentry "RedSeek Rescue (Live)" {
-    linux /casper/vmlinuz boot=casper live-media-path=/casper quiet splash ---
-    initrd /casper/initrd.img
+    linux /$KERNEL_DIR/vmlinuz boot=live live-media-path=/$KERNEL_DIR quiet splash ---
+    initrd /$KERNEL_DIR/initrd.img
 }
 menuentry "RedSeek Rescue (Safe Graphics)" {
-    linux /casper/vmlinuz boot=casper live-media-path=/casper nomodeset quiet splash ---
-    initrd /casper/initrd.img
+    linux /$KERNEL_DIR/vmlinuz boot=live live-media-path=/$KERNEL_DIR nomodeset quiet splash ---
+    initrd /$KERNEL_DIR/initrd.img
 }
 GRUBEOF
 
@@ -63,3 +90,7 @@ file "$ISO_OUT"
 echo ""
 echo "📋 El Torito boot catalog:"
 xorriso -indev "$ISO_OUT" -report_el_torito plain 2>&1 | grep -E "Boot record|El Torito|boot img"
+
+echo ""
+echo "📋 Content check:"
+isoinfo -l -i "$ISO_OUT" 2>/dev/null | grep -E "vmlinuz|initrd|squashfs" || xorriso -indev "$ISO_OUT" -osirx on 2>&1 | grep -E "vmlinuz|initrd|squashfs"

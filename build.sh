@@ -39,7 +39,15 @@ if [ -z "${DEEPSEEK_KEY}" ]; then
   echo "[!] Could not read key. Placeholder left."
   echo "    Edit config/hermes-config.yaml before build."
 else
-  sed -i "s|DEEPSEEK_API_KEY_HERE|${DEEPSEEK_KEY}|" "${CONFIG_DIR}/hermes-config.yaml"
+# Safe key replacement using Python (handles special chars)
+python3 -c "
+import sys
+with open('${CONFIG_DIR}/hermes-config.yaml', 'r') as f:
+    content = f.read()
+content = content.replace('DEEPSEEK_API_KEY_HERE', '${DEEPSEEK_KEY}')
+with open('${CONFIG_DIR}/hermes-config.yaml', 'w') as f:
+    f.write(content)
+"
   echo "[✅] Key auto-injected from current config."
 fi
 echo ""
@@ -56,7 +64,7 @@ mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
 # Init live-build config
 cd "${BUILD_DIR}"
 
-lb config \
+sudo lb config \
   --distribution noble \
   --architectures amd64 \
   --archive-areas "main universe multiverse restricted" \
@@ -186,7 +194,7 @@ CONFIG_FILE="${RESCUE_DIR}/config/hermes-config.yaml"
 pipx install hermes-agent
 
 # Install additional Python packages for rescue tools
-pip install python-evtx 2>/dev/null || true
+python3 -m pip install python-evtx 2>/dev/null || true
 
 # Create .hermes config directory
 mkdir -p /home/rescue/.hermes
@@ -244,7 +252,7 @@ while true; do
     case "$choice" in
         manual) 
             echo "Type 'hermes' to restart. Scripts: /opt/rescue/scripts/"
-            exec bash --login
+            exec bash
             ;;
         *) 
             echo "Restarting..."
@@ -310,7 +318,7 @@ if command -v xorriso &>/dev/null; then
     echo "[✅] ISO is bootable (El Torito found)"
   else
     echo "[!] ISO not bootable — rebuilding with xorriso manual..."
-    bash "${ROOT_DIR}/make-iso.sh" "${ISO_NAME}"
+    bash "${ROOT_DIR}/make-iso.sh" "${BUILD_DIR}" "${OUTPUT_DIR}/${ISO_NAME}.iso"
   fi
 else
   echo "[!] xorriso not available — bootability check skipped"
