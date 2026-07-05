@@ -1,6 +1,5 @@
 #!/bin/bash
 # RedSeek Rescue — Build ISO hibrid (BIOS + UEFI) cu xorriso
-# Rulează DUPĂ live-build (care produce binary staging)
 set -euo pipefail
 
 BUILD="${1:-build/chroot}"
@@ -14,7 +13,7 @@ mkdir -p "$ISO_DIR/EFI/BOOT"
 echo "📦 Copying live files from $BUILD/binary/..."
 cp -a "$BUILD/binary/." "$ISO_DIR/"
 
-# Detect where vmlinuz and initrd are (live/ for Debian, casper/ for Ubuntu)
+# Detectare cale kernel (live/ pentru Debian, casper/ pentru Ubuntu)
 KERNEL_DIR="live"
 if [ -d "$ISO_DIR/live" ] && ls "$ISO_DIR/live"/vmlinuz* &>/dev/null; then
     KERNEL_DIR="live"
@@ -25,20 +24,12 @@ elif ls "$ISO_DIR"/vmlinuz* &>/dev/null; then
 fi
 echo "🔍 Kernel found in /$KERNEL_DIR/"
 
-# Rename versioned kernel files to standard names
+# Redenumire fișiere versiune
 if ls "$ISO_DIR/$KERNEL_DIR"/vmlinuz-* &>/dev/null; then
     mv "$ISO_DIR/$KERNEL_DIR"/vmlinuz-* "$ISO_DIR/$KERNEL_DIR/vmlinuz"
 fi
 if ls "$ISO_DIR/$KERNEL_DIR"/initrd* &>/dev/null; then
     mv "$ISO_DIR/$KERNEL_DIR"/initrd* "$ISO_DIR/$KERNEL_DIR/initrd.img"
-fi
-
-# Ensure filesystem.squashfs exists
-if [ ! -f "$ISO_DIR/$KERNEL_DIR/filesystem.squashfs" ]; then
-    SQUASHFS=$(find "$ISO_DIR" -name "filesystem.squashfs" -o -name "rootfs.squashfs" 2>/dev/null | head -1)
-    if [ -n "$SQUASHFS" ]; then
-        echo "📦 Found squashfs at: $SQUASHFS"
-    fi
 fi
 
 echo "📝 Creating GRUB config (kernel: /$KERNEL_DIR/)..."
@@ -61,7 +52,7 @@ grub-mkstandalone -O x86_64-efi -o "$ISO_DIR/EFI/BOOT/BOOTx64.EFI" \
 
 echo "🔨 Building GRUB BIOS image..."
 grub-mkimage -O i386-pc -o /tmp/core.img -p "(cd)/boot/grub" \
-    biosdisk iso9660 ext2 fat ntfs part_msdos part_gpt normal linux configfile search
+    biosdisk iso9660 ext2 fat ntfs part_msdos normal linux configfile search
 
 cp /tmp/core.img "$ISO_DIR/boot/grub/core.img"
 
@@ -80,6 +71,7 @@ xorriso -as mkisofs \
     -e EFI/BOOT/BOOTx64.EFI \
     -no-emul-boot \
     -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
+    -partition_type 0x00 \
     -o "$ISO_OUT" \
     "$ISO_DIR"
 
@@ -88,9 +80,8 @@ echo "✅ ISO created: $ISO_OUT"
 ls -lh "$ISO_OUT"
 file "$ISO_OUT"
 echo ""
-echo "📋 El Torito boot catalog:"
+echo "📋 El Torito:"
 xorriso -indev "$ISO_OUT" -report_el_torito plain 2>&1 | grep -E "Boot record|El Torito|boot img"
-
 echo ""
-echo "📋 Content check:"
-isoinfo -l -i "$ISO_OUT" 2>/dev/null | grep -E "vmlinuz|initrd|squashfs" || xorriso -indev "$ISO_OUT" -osirx on 2>&1 | grep -E "vmlinuz|initrd|squashfs"
+echo "📋 Partition:"
+xorriso -indev "$ISO_OUT" -toc 2>&1 | grep -i partition
