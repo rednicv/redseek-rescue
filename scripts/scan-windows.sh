@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scan-windows.sh — Scan mounted Windows partition for malware from Linux
 # Uses ClamAV (open source, runs on Linux, scans Windows files)
-set -e
+set -euo pipefail
 
 MOUNT="/mnt/windows"
 LOGS_DIR="/opt/rescue/logs"

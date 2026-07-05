@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # download-antivirus.sh — Download portable antivirus + run via Wine
 # Totul din USB, fără să bootezi Windows
-set -e
+set -euo pipefail
 
 LOGS_DIR="/opt/rescue/logs"
 TOOLS_DIR="/opt/rescue/portable-av"

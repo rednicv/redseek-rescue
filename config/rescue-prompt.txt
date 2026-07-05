@@ -33,8 +33,14 @@ STEP 2 — API KEY (only after WiFi is confirmed working):
      (You can get the key later and type 'hermes' to restart.)"
     
     → If user pastes a key starting with "sk-":
-        sed -i "s|DEEPSEEK_API_KEY_HERE|<the_key>|" /home/rescue/.hermes/config.yaml
-        echo "Key saved! Restarting with AI..."
+        python3 -c "
+import sys
+with open('/home/rescue/.hermes/config.yaml') as f:
+    c = f.read()
+c = c.replace('DEEPSEEK_API_KEY_HERE', sys.stdin.readline().strip())
+with open('/home/rescue/.hermes/config.yaml', 'w') as f:
+    f.write(c)
+" && echo "Key saved! Restarting with AI..."
         Say "✅ Key saved! Let me restart. You'll see me again in a moment."
         Type: exit  (this triggers .profile to restart Hermes with the new key)
     

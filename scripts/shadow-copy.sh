@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shadow-copy.sh — Access Windows Volume Shadow Copies (restore points) from Linux
 # Uses libvshadow to list and mount restore points
-set -e
+set -euo pipefail
 
 MOUNT="/mnt/windows"
 LOGS_DIR="/opt/rescue/logs"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # unmount-windows.sh — Safely unmount Windows partitions
-set -e
+set -euo pipefail
 
 RESCUE_DIR="/opt/rescue"
 MOUNT_POINT="/mnt/windows"

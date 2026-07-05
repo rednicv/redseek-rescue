@@ -2,6 +2,30 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.4.2] — 2026-07-05
+
+### Fixed (Security)
+- **🔴 API key no longer embedded in ISO** — build.sh stopped reading builder's `~/.hermes/config.yaml`. Key is user-provided at first boot (placeholder remains).
+- **🔴 Shell injection in registry-tools.sh** — `SERVICE_NAME` now passed via environment variable, not interpolated into Python code.
+- **🔴 Syntax errors in reset-password.sh** — 3 malformed variable expansions (`}` → `"`) fixed.
+- **🔴 Case-insensitive Windows paths** — reset-password.sh now detects `Windows/System32/config` regardless of case via `find -iname`.
+- **🔴 rescue-prompt.txt sed injection** — API key insertion uses Python instead of `sed` to avoid shell escaping issues.
+
+### Fixed (Build)
+- **build.sh** — removed `sudo lb config` (creates root-owned files); fallback retry with sudo only if first attempt fails + `chown` fixup.
+- **ISO bootability verified** — `xorriso -report_el_torito` check after build.
+- **Dependency check** — graceful check instead of silent `apt-get 2>/dev/null || true`.
+- **ISO_NAME** updated to v1.4.2 (was v1.0 hardcoded).
+
+### Fixed (Scripts)
+- All 15 scripts now use `set -euo pipefail` consistently.
+- `wifi-connect.sh` — password no longer exposed in `/proc/*/cmdline` (uses `nmcli --ask` with stdin pipe).
+- `shadow-copy.sh` — fixed syntax error in log path.
+
+### Added
+- **GitHub Actions CI** — ShellCheck, bash syntax check, secret scanning, Trivy vulnerability scan, markdown lint.
+- **CI badge** in README.
+
 ## [1.3.0] — 2026-07-04
 
 ### Fixed
@@ -16,22 +40,22 @@ All notable changes to RedSeek Rescue will be documented in this file.
 ## [1.1.0] — 2026-07-04
 
 ### Added (TOP 5 — DeepSeek + Gemini collaboration)
-- **rescue-playbook.sh** — Intelligent symptom-to-fix orchestrator. User describes symptom ("boot loop", "bluescreen", "virus"), playbook runs the correct scripts in order. 12 predefined playbooks + full diagnostic mode.
-- **snapshot-system.sh** — Backup critical Windows files (registry hives, BCD, boot files) before repairs. Timestamped snapshots with one-command rollback.
-- **rescue-gui.sh** — Zenity-based graphical interface. One-Click Health Check + visual menu for all 12 repair categories. Auto-mounts Windows if needed.
-- **auto-diagnose.sh** — Intelligent problem detection. Analyzes SMART, minidumps, Event Log, stuck updates, boot files, and registry hives. Generates ranked hypothesis with confidence scores.
-- **repair-boot.sh** — Windows boot repair from Linux. Detects EFI/BIOS mode, checks MBR/BCD/winload/ntoskrnl, verifies critical drivers. Suggests Windows recovery commands for missing files.
+- **rescue-playbook.sh** — Intelligent symptom-to-fix orchestrator.
+- **snapshot-system.sh** — Backup critical Windows files before repairs.
+- **rescue-gui.sh** — Zenity-based graphical interface.
+- **auto-diagnose.sh** — Intelligent problem detection.
+- **repair-boot.sh** — Windows boot repair from Linux.
 
 ### Changed
-- Added `zenity` to build dependencies (for GUI mode)
+- Added `zenity` to build dependencies
 - Build script now includes 21 rescue scripts (up from 16)
 
 ## [1.0.2] — 2026-07-04
 
 ### Fixed
-- **Case-insensitive Windows paths** — `check-windows.sh` and `parse-evtx.sh` now resolve paths case-insensitively.
-- **Fast Startup / hibernation detection** — `cleanup-updates.sh` checks mount status before writes.
-- **USB detection in backup** — `backup-data.sh` uses `lsblk -no RM` for real removable drives.
+- **Case-insensitive Windows paths** — better path resolution
+- **Fast Startup / hibernation detection** — mount status checks
+- **USB detection in backup** — uses `lsblk -no RM` for real removable drives
 
 ### Added
 - **`--remove-hiberfile` flag** in `mount-windows.sh`

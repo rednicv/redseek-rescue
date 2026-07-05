@@ -5,7 +5,7 @@
 # --quick: SMART, partitions, memory, basic Windows checks
 # --full:  everything above + boot drivers, registry backups, deeper analysis
 
-set -e
+set -euo pipefail
 RESCUE_DIR="/opt/rescue"
 LOGS_DIR="${RESCUE_DIR}/logs"
 mkdir -p "${LOGS_DIR}"

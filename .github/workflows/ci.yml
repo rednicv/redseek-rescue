@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, v* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ShellCheck on all scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './scripts'
+          severity: style
+          format: gcc
+
+  build-test:
+    name: Build Test (syntax only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check bash syntax
+        run: |
+          for f in scripts/*.sh build.sh; do
+            echo "Checking: $f"
+            bash -n "$f" || exit 1
+          done
+          echo "✅ All scripts pass syntax check"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for secrets in code
+        run: |
+          echo "Checking for hardcoded API keys..."
+          if grep -r 'sk-[a-zA-Z0-9]\{20,\}' --include='*.sh' --include='*.yaml' --include='*.md' --include='*.txt' .; then
+            echo "❌ Hardcoded API key found!"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets found"
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint markdown files
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: '*.md'
+        continue-on-error: true

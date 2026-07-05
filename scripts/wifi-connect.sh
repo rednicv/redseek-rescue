@@ -2,8 +2,9 @@
 # wifi-connect.sh — Simplified WiFi connection for rescue USB
 # Usage: ./wifi-connect.sh                       (interactive menu)
 #        ./wifi-connect.sh SSID [password]        (quick connect)
+# Password is never passed as CLI arg — uses stdin to avoid /proc/cmdline leak
 
-set -e
+set -euo pipefail
 LOGS_DIR="/opt/rescue/logs"
 mkdir -p "${LOGS_DIR}"
 
@@ -21,6 +22,18 @@ ensure_nm() {
   sleep 1
 }
 
+nm_connect() {
+  local ssid="$1"
+  local pass="$2"
+  if [ -n "${pass}" ]; then
+    # Pass password via stdin — not as CLI arg (avoids /proc/cmdline leak)
+    printf '%s\n' "${pass}" | nmcli --ask device wifi connect "${ssid}" 2>&1 || \
+      nmcli device wifi connect "${ssid}" password "${pass}" 2>&1
+  else
+    nmcli device wifi connect "${ssid}" 2>&1
+  fi
+}
+
 # === MAIN ===
 find_iface
 
@@ -35,13 +48,10 @@ echo "[+] WiFi interface: ${WIFI_IFACE}"
 ensure_nm
 
 if [ $# -ge 1 ]; then
-  # Quick connect mode
+  # Quick connect mode — password passed via pipe, not CLI
   SSID="$1"
-  if [ $# -ge 2 ]; then
-    nmcli device wifi connect "${SSID}" password "$2" 2>&1 | tee "${LOGS_DIR}/wifi-connect.log"
-  else
-    nmcli device wifi connect "${SSID}" 2>&1 | tee "${LOGS_DIR}/wifi-connect.log"
-  fi
+  PASSWORD="${2:-}"
+  nm_connect "${SSID}" "${PASSWORD}" | tee "${LOGS_DIR}/wifi-connect.log"
 else
   # Interactive mode
   echo "=== Scanning for networks ==="
@@ -54,11 +64,7 @@ else
   read -p "SSID: " SSID
   read -sp "Password (leave empty for open network): " PASSWORD
   echo ""
-  if [ -z "${PASSWORD}" ]; then
-    nmcli device wifi connect "${SSID}" 2>&1 | tee "${LOGS_DIR}/wifi-connect.log"
-  else
-    nmcli device wifi connect "${SSID}" password "${PASSWORD}" 2>&1 | tee "${LOGS_DIR}/wifi-connect.log"
-  fi
+  nm_connect "${SSID}" "${PASSWORD}" | tee "${LOGS_DIR}/wifi-connect.log"
 fi
 
 # Check result

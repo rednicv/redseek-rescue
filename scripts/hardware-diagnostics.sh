@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # hardware-diagnostics.sh — Test RAM, CPU, disk health from Linux live USB
 # Run this if Windows symptoms suggest hardware failure
-set -e
+set -euo pipefail
 
 LOGS_DIR="/opt/rescue/logs"
 OUTPUT="${LOGS_DIR}/hardware-diagnostics.txt"

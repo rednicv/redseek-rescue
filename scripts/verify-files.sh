@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # verify-files.sh — Verify Windows system file signatures offline
 # Checks if critical system files are tampered with (malware often replaces them)
-set -e
+set -euo pipefail
 
 MOUNT="/mnt/windows"
 LOGS_DIR="/opt/rescue/logs"
