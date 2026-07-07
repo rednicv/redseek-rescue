@@ -166,7 +166,7 @@ if [ "${BOOT_MODE}" = "efi" ]; then
     fi
     
     # Cleanup temp mount
-    [ "${EFI_MOUNT}" = "/tmp/efi-fix" ] && umount "${EFI_MOUNT}" 2>/dev/null
+    [ "${EFI_MOUNT:-}" = "/tmp/efi-fix" ] && umount "${EFI_MOUNT}" 2>/dev/null
 fi
 
 # === 5. Driver injection ===

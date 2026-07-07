@@ -2,7 +2,7 @@
 # Key is auto-injected by build.sh from active Amsterdam config
 
 default_provider: deepseek
-default_model: deepseek-v4-flash
+default_model: deepseek-chat
 
 fallback_providers:
   - deepseek

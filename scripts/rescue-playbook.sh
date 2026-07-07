@@ -4,7 +4,6 @@
 # Usage: ./rescue-playbook.sh [symptom]
 
 source "$(dirname "$0")/utils.sh"
-verify_mount || exit 1
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

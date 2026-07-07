@@ -15,7 +15,7 @@ BUILD_DIR="${ROOT_DIR}/build"
 if [ -f "${ROOT_DIR}/VERSION" ]; then
   ISO_VERSION=$(head -1 "${ROOT_DIR}/VERSION")
 else
-  ISO_VERSION="1.4.3"
+  ISO_VERSION="1.4.4"
 fi
 ISO_NAME="redseek-rescue-v${ISO_VERSION}"
 
@@ -198,9 +198,14 @@ SSHCFG
 
 # Auto-start Hermes on login via /etc/skel/.profile (live-boot copies skel to new user homes)
 # NOT /home/rescue/ — live-boot overwrites that directory at boot
+# Only runs on local TTY — SSH/SCP sessions get a normal shell
 mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/skel"
 cat > "${BUILD_DIR}/config/includes.chroot/etc/skel/.profile" << 'PROFILE'
 #!/bin/bash
+# Only run Hermes on local TTY (not SSH/SCP)
+if [ ! -t 0 ] || [ -n "${SSH_CONNECTION:-}" ] || [ -n "${SSH_TTY:-}" ]; then
+    exec bash --login
+fi
 CRASH_COUNT=0
 MAX_CRASHES=3
 CRASH_WINDOW=10  # seconds — if 3 crashes within this window, drop to shell

@@ -10,6 +10,12 @@ SCAN_LOG="${LOGS_DIR}/clamav-scan.log"
 # Ensure the log directory actually exists before writing to it
 mkdir -p "${LOGS_DIR}"
 
+# Verify Windows is mounted
+if ! mountpoint -q "${MOUNT}"; then
+  echo "[!] Windows not mounted at ${MOUNT}. Run mount-windows.sh first." | tee "${SCAN_LOG}"
+  exit 1
+fi
+
 echo "=== ClamAV Windows Scan ===" | tee "${SCAN_LOG}"
 echo "Date: $(date)" | tee -a "${SCAN_LOG}"
 echo "" | tee -a "${SCAN_LOG}"

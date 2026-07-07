@@ -63,22 +63,22 @@ restore_hives() {
 }
 
 disable_service() {
-  SERVICE_NAME="$1"
-  if [ -z "${SERVICE_NAME}" ]; then
-    echo "[!] Specify service name to disable." | tee -a "${LOGS_DIR}/registry-tools.log"
-    exit 1
-  fi
+SERVICE_NAME="$1"
+if [ -z "${SERVICE_NAME}" ]; then
+  echo "[!] Specify service name to disable." | tee -a "${LOGS_DIR}/registry-tools.log"
+  exit 1
+fi
   
-  echo "[+] Disabling service: ${SERVICE_NAME}" | tee -a "${LOGS_DIR}/registry-tools.log"
-  SERVICE_VAR="${SERVICE_NAME}" python3 -c "
+echo "[+] Disabling service: ${SERVICE_NAME}" | tee -a "${LOGS_DIR}/registry-tools.log"
+REG_DIR_VAR="${REG_DIR}" SERVICE_VAR="${SERVICE_NAME}" python3 -c "
 import hivex, sys, os
 
-hive_path = '${REG_DIR}/SYSTEM'
+hive_path = os.environ.get('REG_DIR_VAR', '') + '/SYSTEM'
 svc_name = os.environ.get('SERVICE_VAR', '').lower()
 
 if not os.path.exists(hive_path):
-    print('[!] SYSTEM hive not found at', hive_path)
-    sys.exit(1)
+  print('[!] SYSTEM hive not found at', hive_path)
+  sys.exit(1)
 
 h = hivex.Hivex(hive_path, write=True)
 current = h.root()
@@ -142,10 +142,10 @@ enable_service() {
   fi
   
   echo "[+] Enabling service: ${SERVICE_NAME}" | tee -a "${LOGS_DIR}/registry-tools.log"
-  SERVICE_VAR="${SERVICE_NAME}" python3 -c "
+  REG_DIR_VAR="${REG_DIR}" SERVICE_VAR="${SERVICE_NAME}" python3 -c "
 import hivex, sys, os
 
-hive_path = '${REG_DIR}/SYSTEM'
+hive_path = os.environ.get('REG_DIR_VAR', '') + '/SYSTEM'
 svc_name = os.environ.get('SERVICE_VAR', '').lower()
 
 if not os.path.exists(hive_path):
@@ -297,16 +297,16 @@ case "${1:-help}" in
     restore_hives
     ;;
   disable)
-    disable_service "$2"
+    disable_service "${2:-}"
     ;;
   enable)
-    enable_service "$2"
+    enable_service "${2:-}"
     ;;
   list-services)
     list_services
     ;;
   info)
-    info_hive "$2"
+    info_hive "${2:-}"
     ;;
   *)
     usage

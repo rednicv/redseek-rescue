@@ -141,10 +141,10 @@ case "${1:-help}" in
     list_users
     ;;
   reset)
-    reset_password "$2"
+    reset_password "${2:-}"
     ;;
   enable)
-    enable_user "$2"
+    enable_user "${2:-}"
     ;;
   utilman)
     utilman_hack

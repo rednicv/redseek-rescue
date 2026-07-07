@@ -8,7 +8,7 @@ LOGS_DIR="/opt/rescue/logs"
 SHADOW_MOUNT="/mnt/shadow"
 mkdir -p "${LOGS_DIR}" "${SHADOW_MOUNT}"
 
-echo "=== Volume Shadow Copy (Restore Points) ===" | tee "${LOGS_DIR}/shadow-copy.log}"
+echo "=== Volume Shadow Copy (Restore Points) ===" | tee "${LOGS_DIR}/shadow-copy.log"
 echo "Date: $(date)" | tee -a "${LOGS_DIR}/shadow-copy.log"
 echo "" | tee -a "${LOGS_DIR}/shadow-copy.log"
 
@@ -17,11 +17,10 @@ if ! mountpoint -q "${MOUNT}"; then
   exit 1
 fi
 
-# Find the Windows system drive device
-WIN_DEV=$(findmnt -n -o SOURCE "${MOUNT}" 2>/dev/null | sed 's/[0-9]*$//' || echo "")
+# Find the Windows system drive PARTITION (vshadowinfo needs partition, not disk)
+WIN_DEV=$(findmnt -n -o SOURCE "${MOUNT}" 2>/dev/null || echo "")
 if [ -z "${WIN_DEV}" ]; then
-  # Try to find it manually
-  WIN_DEV=$(lsblk -o NAME,MOUNTPOINT -n -l | grep "${MOUNT}" | awk '{print $1}' | sed 's/[0-9]*$//' | xargs -I{} echo /dev/{})
+  WIN_DEV=$(lsblk -o NAME,MOUNTPOINT -n -l | grep "${MOUNT}" | awk '{print "/dev/"$1}')
 fi
 
 echo "[+] Windows device: ${WIN_DEV}" | tee -a "${LOGS_DIR}/shadow-copy.log"
