@@ -171,6 +171,7 @@ cp -r "${CONFIG_DIR}" "${BUILD_DIR}/config/includes.chroot/opt/rescue/config"
 cp -r "${ISO_OVERLAY}/"* "${BUILD_DIR}/config/includes.chroot/" 2>/dev/null || true
 
 # Hermes install script (runs as chroot hook during build)
+mkdir -p "${BUILD_DIR}/config/hooks/chroot"
 cat > "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot" << 'HERMES'
 #!/usr/bin/env bash
 # Installs Hermes Agent into the ISO — runs inside chroot during build
