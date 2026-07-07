@@ -141,10 +141,14 @@ wireless-tools
 wpasupplicant
 network-manager
 
-# Boot repair
+# Linux kernel + boot support
+linux-image-generic
 grub-pc-bin
 grub-efi-amd64-bin
+grub-efi-amd64
+shim-signed
 efibootmgr
+syslinux-utils
 
 # Python / Hermes
 python3
