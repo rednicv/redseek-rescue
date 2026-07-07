@@ -171,7 +171,14 @@ cp -r "${CONFIG_DIR}" "${BUILD_DIR}/config/includes.chroot/opt/rescue/config"
 cp -r "${ISO_OVERLAY}/"* "${BUILD_DIR}/config/includes.chroot/" 2>/dev/null || true
 
 # Fix dpkg start-stop-daemon PATH issue in chroot (Ubuntu Noble)
-mkdir -p "${BUILD_DIR}/config/includes.chroot/usr/sbin"
+# dpkg needs start-stop-daemon in PATH — create wrapper in /usr/bin
+mkdir -p "${BUILD_DIR}/config/includes.chroot/usr/bin" "${BUILD_DIR}/config/includes.chroot/usr/sbin"
+cat > "${BUILD_DIR}/config/includes.chroot/usr/bin/start-stop-daemon" << 'SSD'
+#!/bin/sh
+# Fake start-stop-daemon for chroot builds — just succeed
+exit 0
+SSD
+chmod +x "${BUILD_DIR}/config/includes.chroot/usr/bin/start-stop-daemon"
 cat > "${BUILD_DIR}/config/includes.chroot/usr/sbin/policy-rc.d" << 'POLICYRC'
 #!/bin/sh
 # Disable service start/stop during package installation in chroot
