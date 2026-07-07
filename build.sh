@@ -191,7 +191,7 @@ HERMES
 chmod +x "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot"
 
 # SSH hardening: disable password auth, only key-based (live ISO, no default password)
-mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/ssh"
+mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/ssh/sshd_config.d"
 cat > "${BUILD_DIR}/config/includes.chroot/etc/ssh/sshd_config.d/99-rescue.conf" << 'SSHCFG'
 PasswordAuthentication no
 PermitRootLogin no
