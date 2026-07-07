@@ -168,7 +168,6 @@ PKGLIST
 mkdir -p "${BUILD_DIR}/config/includes.chroot/opt/rescue"
 cp -r "${SCRIPTS_DIR}" "${BUILD_DIR}/config/includes.chroot/opt/rescue/scripts"
 cp -r "${CONFIG_DIR}" "${BUILD_DIR}/config/includes.chroot/opt/rescue/config"
-mkdir -p "${BUILD_DIR}/config/includes.chroot/home/rescue"
 cp -r "${ISO_OVERLAY}/"* "${BUILD_DIR}/config/includes.chroot/" 2>/dev/null || true
 
 # Hermes install script (runs as chroot hook during build)
@@ -179,10 +178,11 @@ cat > "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot" << 'HERMES'
 set -euo pipefail
 
 # Install hermes-agent system-wide (pinned version for reproducibility)
-pip install --no-cache-dir hermes-agent==0.18.0
+# --break-system-packages required: Ubuntu Noble marks Python as externally-managed (PEP 668)
+pip install --break-system-packages --no-cache-dir hermes-agent==0.18.0
 
-# Also install python-evtx in the same environment
-pip install --no-cache-dir python-evtx 2>/dev/null || true
+# Also install python-evtx in the same environment  
+pip install --break-system-packages --no-cache-dir python-evtx 2>/dev/null || true
 
 echo "[✓] Hermes Agent installed"
 HERMES
@@ -196,8 +196,10 @@ PasswordAuthentication no
 PermitRootLogin no
 SSHCFG
 
-# Auto-start Hermes on login via .profile (with crash guard)
-cat > "${BUILD_DIR}/config/includes.chroot/home/rescue/.profile" << 'PROFILE'
+# Auto-start Hermes on login via /etc/skel/.profile (live-boot copies skel to new user homes)
+# NOT /home/rescue/ — live-boot overwrites that directory at boot
+mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/skel"
+cat > "${BUILD_DIR}/config/includes.chroot/etc/skel/.profile" << 'PROFILE'
 #!/bin/bash
 CRASH_COUNT=0
 MAX_CRASHES=3
