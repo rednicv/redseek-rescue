@@ -56,6 +56,7 @@ mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
 cd "${BUILD_DIR}"
 
 lb config \
+  --mode ubuntu \
   --distribution noble \
   --architectures amd64 \
   --archive-areas "main universe multiverse restricted" \

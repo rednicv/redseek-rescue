@@ -1,0 +1,45 @@
+name: Build ISO
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # poți porni manual din GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04  # live-build funcționează pe 22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build debootstrap mtools xorriso isolinux syslinux-utils grub-pc-bin grub-efi-amd64-bin
+      
+      - name: Build ISO
+        run: |
+          sudo bash build.sh 2>&1 | tee build.log
+      
+      - name: Check bootability
+        run: |
+          ISO=$(ls output/*.iso | head -1)
+          echo "ISO: $ISO ($(du -h $ISO | cut -f1))"
+          xorriso -indev $ISO -report_el_torito plain | grep "El Torito" && echo "✅ BOOTABLE" || echo "❌ NOT BOOTABLE"
+      
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: redseek-rescue-iso
+          path: output/*.iso
+          retention-days: 7
+      
+      - name: Create Release (if push to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          VERSION=$(cat VERSION)
+          gh release create "v$VERSION" \
+            --title "RedSeek Rescue v$VERSION" \
+            --notes "Automated build from commit ${{ github.sha }}" \
+            output/*.iso || echo "Release may already exist"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
