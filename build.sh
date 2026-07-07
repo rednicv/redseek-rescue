@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# RedSeek Rescue by rednic — Build script
+# RedSeek Rescue by rednic — Build script v1.4.3
 # ⚠️ NO API key embedded in ISO — user provides at first boot
 set -euo pipefail
 
@@ -10,7 +10,14 @@ SCRIPTS_DIR="${ROOT_DIR}/scripts"
 CONFIG_DIR="${ROOT_DIR}/config"
 CHROOT_CUSTOM="${ROOT_DIR}/chroot-custom"
 BUILD_DIR="${ROOT_DIR}/build"
-ISO_NAME="redseek-rescue-v1.4.2"
+
+# Read version from VERSION file, fallback to hardcoded
+if [ -f "${ROOT_DIR}/VERSION" ]; then
+  ISO_VERSION=$(head -1 "${ROOT_DIR}/VERSION")
+else
+  ISO_VERSION="1.4.3"
+fi
+ISO_NAME="redseek-rescue-v${ISO_VERSION}"
 
 echo "=== RedSeek Rescue by rednic ==="
 echo ""
@@ -22,7 +29,6 @@ if [ ! -d "${SCRIPTS_DIR}" ]; then
 fi
 
 # Copy config example if missing — NO API key injection
-# Key is user-provided at first boot via rescue-prompt.txt (safe Python, not sed)
 if [ ! -f "${CONFIG_DIR}/hermes-config.yaml" ]; then
   echo "[*] Creating config/hermes-config.yaml from example..."
   cp "${CONFIG_DIR}/hermes-config.yaml.example" "${CONFIG_DIR}/hermes-config.yaml"
@@ -50,6 +56,7 @@ mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
 cd "${BUILD_DIR}"
 
 lb config \
+  --mode ubuntu \
   --distribution noble \
   --architectures amd64 \
   --archive-areas "main universe multiverse restricted" \
@@ -65,7 +72,7 @@ echo ""
 echo "=== Config created ==="
 echo ""
 
-# Create our package list
+# Create our package list (removed firmware-b43-installer — not in Ubuntu Noble)
 cat > config/package-lists/deepseekrescue.list.chroot << 'PKGLIST'
 # Core
 openssh-server
@@ -73,9 +80,8 @@ curl
 wget
 git
 
-# WiFi firmware (Broadcom, Atheros, Intel)
+# WiFi firmware (Intel, Atheros — Broadcom pulled automatically by linux-firmware)
 linux-firmware
-firmware-b43-installer
 
 # Filesystem tools (Windows NTFS)
 ntfs-3g
@@ -165,42 +171,38 @@ cp -r "${CONFIG_DIR}" "${BUILD_DIR}/config/includes.chroot/opt/rescue/config"
 mkdir -p "${BUILD_DIR}/config/includes.chroot/home/rescue"
 cp -r "${ISO_OVERLAY}/"* "${BUILD_DIR}/config/includes.chroot/" 2>/dev/null || true
 
-# Create Hermes install script that runs on first boot
-cat > "${BUILD_DIR}/config/includes.chroot/opt/rescue/install-hermes.sh" << 'HERMES'
+# Hermes install script (runs as chroot hook during build)
+cat > "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot" << 'HERMES'
 #!/usr/bin/env bash
-# Installs Hermes Agent on first boot — NO API key embedded
+# Installs Hermes Agent into the ISO — runs inside chroot during build
+# Installs to /usr/local so rescue user can find it
 set -euo pipefail
 
-RESCUE_DIR="/opt/rescue"
-CONFIG_FILE="${RESCUE_DIR}/config/hermes-config.yaml"
+# Install hermes-agent system-wide (pinned version for reproducibility)
+pip install --no-cache-dir hermes-agent==0.18.0
 
-pipx install hermes-agent
-pip install python-evtx 2>/dev/null || true
+# Also install python-evtx in the same environment
+pip install --no-cache-dir python-evtx 2>/dev/null || true
 
-mkdir -p /home/rescue/.hermes
-cp "${CONFIG_FILE}" /home/rescue/.hermes/config.yaml
-echo ""
-echo "⚠️  IMPORTANT: Edit /home/rescue/.hermes/config.yaml"
-echo "   and add your DeepSeek API key before using Hermes."
-echo "   Get one at: https://platform.deepseek.com/api_keys"
-echo ""
-
-mkdir -p /home/rescue/.hermes/skills
-if [ -d "${RESCUE_DIR}/config/skills" ]; then
-  cp -r "${RESCUE_DIR}/config/skills/"* /home/rescue/.hermes/skills/
-fi
-chown -R rescue:rescue /home/rescue/.hermes
+echo "[✓] Hermes Agent installed"
 HERMES
 
-chmod +x "${BUILD_DIR}/config/includes.chroot/opt/rescue/install-hermes.sh"
-mkdir -p "${BUILD_DIR}/config/hooks/chroot"
-mv "${BUILD_DIR}/config/includes.chroot/opt/rescue/install-hermes.sh" \
-   "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot"
 chmod +x "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot"
 
-# Auto-start Hermes on login via .profile
+# SSH hardening: disable password auth, only key-based (live ISO, no default password)
+mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/ssh"
+cat > "${BUILD_DIR}/config/includes.chroot/etc/ssh/sshd_config.d/99-rescue.conf" << 'SSHCFG'
+PasswordAuthentication no
+PermitRootLogin no
+SSHCFG
+
+# Auto-start Hermes on login via .profile (with crash guard)
 cat > "${BUILD_DIR}/config/includes.chroot/home/rescue/.profile" << 'PROFILE'
 #!/bin/bash
+CRASH_COUNT=0
+MAX_CRASHES=3
+CRASH_WINDOW=10  # seconds — if 3 crashes within this window, drop to shell
+
 while true; do
     clear
     echo "╔═══════════════════════════════════════════╗"
@@ -210,9 +212,30 @@ while true; do
     echo ""
     echo "Starting AI rescue agent..."
     echo ""
+
+    START_TIME=$(date +%s)
     hermes run /opt/rescue/config/rescue-prompt.txt
+    EXIT_CODE=$?
+
+    NOW=$(date +%s)
+    if [ $((NOW - START_TIME)) -lt "$CRASH_WINDOW" ] && [ "$EXIT_CODE" -ne 0 ]; then
+        CRASH_COUNT=$((CRASH_COUNT + 1))
+    else
+        CRASH_COUNT=0
+    fi
+
+    if [ "$CRASH_COUNT" -ge "$MAX_CRASHES" ]; then
+        clear
+        echo "╔═══════════════════════════════════════════╗"
+        echo "║  Hermes crashed $CRASH_COUNT times in a row.  ║"
+        echo "║  Dropping to shell...                    ║"
+        echo "╚═══════════════════════════════════════════╝"
+        exec bash --login
+    fi
+
     clear
-    echo ""; echo "╔═══════════════════════════════════════════╗"
+    echo ""
+    echo "╔═══════════════════════════════════════════╗"
     echo "║  Hermes has stopped.                     ║"
     echo "╚═══════════════════════════════════════════╝"
     echo "  Type 'hermes'   → restart AI assistant"
@@ -220,7 +243,7 @@ while true; do
     read -p "hermes/manual> " choice
     case "$choice" in
         manual) exec bash --login ;;
-        *) echo "Restarting..." ;;
+        *) echo "Restarting..." ; CRASH_COUNT=0 ;;
     esac
 done
 PROFILE
@@ -245,14 +268,20 @@ echo "=== Building ISO (this takes a while) ==="
 echo ""
 
 cd "${BUILD_DIR}"
+
+# ⚠️ Disable set -e temporarily so retry logic actually works
+set +e
 lb build 2>&1 | tee "${ROOT_DIR}/build.log"
-BUILD_EXIT=$?
+BUILD_EXIT=${PIPESTATUS[0]}  # Get lb build's exit code, not tee's
+set -e
 
 if [ "${BUILD_EXIT}" -ne 0 ]; then
   echo "[!] lb build failed. Retrying with sudo..."
-  sudo lb build 2>&1 | tee "${ROOT_DIR}/build.log"
-  BUILD_EXIT=$?
-  sudo chown -R "$(whoami):$(whoami)" "${BUILD_DIR}/config" 2>/dev/null || true
+  set +e
+  sudo lb build 2>&1 | tee -a "${ROOT_DIR}/build.log"
+  BUILD_EXIT=${PIPESTATUS[0]}
+  set -e
+  sudo chown -R "$(whoami):$(whoami)" "${BUILD_DIR}" 2>/dev/null || true
 fi
 
 if [ "${BUILD_EXIT}" -ne 0 ]; then
@@ -260,17 +289,21 @@ if [ "${BUILD_EXIT}" -ne 0 ]; then
   exit 1
 fi
 
-# Find the ISO
+# Find the ISO (only match the hybrid one, not any leftovers)
 ISO_SOURCE=""
 for candidate in \
   "${BUILD_DIR}/live-image-amd64.hybrid.iso" \
-  "${BUILD_DIR}/binary.hybrid.iso" \
-  "${BUILD_DIR}"/*.iso; do
+  "${BUILD_DIR}/binary.hybrid.iso"; do
   if [ -f "$candidate" ]; then
     ISO_SOURCE="$candidate"
     break
   fi
 done
+
+# Fallback: first .iso file (less reliable, but backup)
+if [ -z "${ISO_SOURCE}" ]; then
+  ISO_SOURCE=$(ls -1 "${BUILD_DIR}"/*.iso 2>/dev/null | head -1)
+fi
 
 if [ -z "${ISO_SOURCE}" ]; then
   echo "=== ❌ Build failed — no ISO found. Check build.log ==="
@@ -287,9 +320,11 @@ else
   sudo isohybrid "${ISO_SOURCE}" 2>/dev/null && echo "[✅] isohybrid applied" || echo "[!] isohybrid failed — UEFI-only ISO"
 fi
 
-# Copy result
+# Copy result + generate checksum
 mkdir -p "${OUTPUT_DIR}"
 cp "${ISO_SOURCE}" "${OUTPUT_DIR}/${ISO_NAME}.iso"
+sha256sum "${OUTPUT_DIR}/${ISO_NAME}.iso" > "${OUTPUT_DIR}/${ISO_NAME}.iso.sha256"
 echo ""
 echo "=== ✅ ISO ready: ${OUTPUT_DIR}/${ISO_NAME}.iso ==="
+echo "    SHA256: $(cat "${OUTPUT_DIR}/${ISO_NAME}.iso.sha256")"
 ls -lh "${OUTPUT_DIR}/${ISO_NAME}.iso"
