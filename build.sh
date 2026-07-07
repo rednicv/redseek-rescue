@@ -170,8 +170,29 @@ cp -r "${SCRIPTS_DIR}" "${BUILD_DIR}/config/includes.chroot/opt/rescue/scripts"
 cp -r "${CONFIG_DIR}" "${BUILD_DIR}/config/includes.chroot/opt/rescue/config"
 cp -r "${ISO_OVERLAY}/"* "${BUILD_DIR}/config/includes.chroot/" 2>/dev/null || true
 
+# Fix dpkg start-stop-daemon PATH issue in chroot (Ubuntu Noble)
+mkdir -p "${BUILD_DIR}/config/includes.chroot/usr/sbin"
+cat > "${BUILD_DIR}/config/includes.chroot/usr/sbin/policy-rc.d" << 'POLICYRC'
+#!/bin/sh
+# Disable service start/stop during package installation in chroot
+exit 101
+POLICYRC
+chmod +x "${BUILD_DIR}/config/includes.chroot/usr/sbin/policy-rc.d"
+
 # Hermes install script (runs as chroot hook during build)
 mkdir -p "${BUILD_DIR}/config/hooks/chroot"
+# Fix PATH before dpkg runs (Ubuntu Noble + live-build compatibility)
+cat > "${BUILD_DIR}/config/hooks/chroot/00-fix-path.chroot" << 'FIXPATH'
+#!/bin/sh
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+# Symlink start-stop-daemon if missing (needed by dpkg during build)
+if [ ! -f /usr/sbin/start-stop-daemon ] && [ -f /bin/true ]; then
+    mkdir -p /usr/sbin
+    ln -sf /bin/true /usr/sbin/start-stop-daemon
+fi
+FIXPATH
+chmod +x "${BUILD_DIR}/config/hooks/chroot/00-fix-path.chroot"
+
 cat > "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot" << 'HERMES'
 #!/usr/bin/env bash
 # Installs Hermes Agent into the ISO — runs inside chroot during build
