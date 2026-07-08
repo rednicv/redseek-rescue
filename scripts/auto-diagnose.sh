@@ -96,11 +96,29 @@ if [ -n "${WIN_DIR}" ]; then
                 [ -f "${EVTX_FILE}" ] || continue
                 EVTX_FOUND=1
                 
-                # Quick grep for known error patterns (works on raw EVTX)
-                ERRORS=$(strings "${EVTX_FILE}" 2>/dev/null | grep -ciE "disk|ntfs|chkdsk|bad block" || echo 0)
-                DRIVERS=$(strings "${EVTX_FILE}" 2>/dev/null | grep -ciE "driver|\.sys.*fail|DRIVER_" || echo 0)
-                MEMORY=$(strings "${EVTX_FILE}" 2>/dev/null | grep -ciE "memory|MEMORY_MANAGEMENT|page fault" || echo 0)
-                BOOT=$(strings "${EVTX_FILE}" 2>/dev/null | grep -ciE "boot|winload|bcd|bootmgr" || echo 0)
+                # Use python-evtx for proper event parsing
+                EVTX_FILE="${EVTX_DIR}/${log}.evtx"
+                EVTX_ANALYSIS=$(python3 -c "
+import sys, json
+try:
+    from Evtx.Evtx import Evtx
+    from Evtx.Views import evtx_to_xml
+    events = []
+    with Evtx('${EVTX_FILE}') as log:
+        for i, rec in enumerate(log.records()):
+            if i > 500: break
+            xml = rec.xml()
+            events.append(xml)
+    text = ' '.join(events).lower()
+    errors = sum(1 for kw in ['disk','ntfs','chkdsk','bad block','corrupt'] if kw in text)
+    drivers = sum(1 for kw in ['driver','driver_power','driver_failure','failed'] if kw in text)
+    memory = sum(1 for kw in ['memory','memory_management','page fault','out of memory'] if kw in text)
+    boot = sum(1 for kw in ['boot','winload','bcd','bootmgr','0xc000'] if kw in text)
+    print(f'{errors}|{drivers}|{memory}|{boot}')
+except Exception as e:
+    print('0|0|0|0')
+" 2>/dev/null || echo "0|0|0|0")
+                IFS='|' read -r ERRORS DRIVERS MEMORY BOOT <<< "$EVTX_ANALYSIS"
                 
                 [[ "${ERRORS}" =~ ^[0-9]+$ && "${ERRORS}" -gt 5 ]] && add_evidence "filesystem_corrupt" 10 "${log}.evtx: ${ERRORS} NTFS/disk errors"
                 [[ "${DRIVERS}" =~ ^[0-9]+$ && "${DRIVERS}" -gt 3 ]] && add_evidence "driver_fault" 10 "${log}.evtx: ${DRIVERS} driver failures"
