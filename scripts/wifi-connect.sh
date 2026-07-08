@@ -1,76 +1,40 @@
 #!/usr/bin/env bash
-# wifi-connect.sh — Simplified WiFi connection for rescue USB
-# Usage: ./wifi-connect.sh                       (interactive menu)
-#        ./wifi-connect.sh SSID [password]        (quick connect)
-# Password is never passed as CLI arg — uses stdin to avoid /proc/cmdline leak
+# RedSeek Rescue - wifi-connect.sh
+# Conectare securizată la rețea WiFi prin nmcli
 
 set -euo pipefail
-LOGS_DIR="/opt/rescue/logs"
-mkdir -p "${LOGS_DIR}"
 
-WIFI_IFACE=""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+source "${SCRIPT_DIR}/utils.sh"
 
-find_iface() {
-  WIFI_IFACE=$(iw dev 2>/dev/null | awk '/Interface/{print $2}' | head -1)
-  if [ -z "${WIFI_IFACE}" ]; then
-    WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device status 2>/dev/null | grep wifi | cut -d: -f1 | head -1)
-  fi
-}
+require_root
 
-ensure_nm() {
-  nmcli radio wifi on 2>/dev/null || true
-  sleep 1
-}
+log_info "Se activează interfețele wireless..."
+rfkill unblock wifi || true
 
-nm_connect() {
-  local ssid="$1"
-  local pass="$2"
-  if [ -n "${pass}" ]; then
-    # Pass password via stdin — never as CLI arg (avoids leak to ps aux / /proc/cmdline)
-    printf '%s\n' "${pass}" | nmcli --ask device wifi connect "${ssid}" 2>&1
-  else
-    nmcli device wifi connect "${ssid}" 2>&1
-  fi
-}
-
-# === MAIN ===
-find_iface
-
-if [ -z "${WIFI_IFACE}" ]; then
-  echo "[!] No WiFi interface found."
-  echo "    Check if adapter is detected: iwconfig"
-  echo "    Or use ethernet via USB-C adapter."
-  exit 1
+IFACE=$(ip link | awk '/wlan|wlp/ {print $2}' | tr -d ':')
+if [ -n "$IFACE" ]; then
+    ip link set dev "$IFACE" up 2>/dev/null || true
 fi
 
-echo "[+] WiFi interface: ${WIFI_IFACE}"
-ensure_nm
+log_info "Rețele WiFi disponibile:"
+nmcli dev wifi list || true
 
-if [ $# -ge 1 ]; then
-  # Quick connect mode — password passed via pipe, not CLI
-  SSID="$1"
-  PASSWORD="${2:-}"
-  nm_connect "${SSID}" "${PASSWORD}" | tee "${LOGS_DIR}/wifi-connect.log"
+echo -n "Introduceți SSID-ul rețelei: "
+read -r SSID
+echo -n "Introduceți parola rețelei (lasă gol pentru rețea deschisă): "
+read -s PASSWORD
+echo ""
+
+if [ -z "$PASSWORD" ]; then
+    nmcli dev wifi connect "$SSID"
 else
-  # Interactive mode
-  echo "=== Scanning for networks ==="
-  nmcli device wifi list 2>/dev/null || {
-    nmcli device wifi rescan
-    sleep 3
-    nmcli device wifi list
-  }
-  echo ""
-  read -p "SSID: " SSID
-  read -sp "Password (leave empty for open network): " PASSWORD
-  echo ""
-  nm_connect "${SSID}" "${PASSWORD}" | tee "${LOGS_DIR}/wifi-connect.log"
+    nmcli dev wifi connect "$SSID" password "$PASSWORD"
 fi
 
-# Check result
-if nmcli -t -f DEVICE,STATE device status 2>/dev/null | grep "${WIFI_IFACE}:connected" &>/dev/null; then
-  IP=$(ip -4 addr show "${WIFI_IFACE}" 2>/dev/null | grep inet | awk '{print $2}' | head -1)
-  echo "[✅] WiFi connected to: ${SSID:-}"
-  [ -n "${IP}" ] && echo "    IP: ${IP}"
+if ping -c 2 8.8.8.8 &>/dev/null; then
+    log_success "Conexiune la internet realizată cu succes."
 else
-  echo "[❌] WiFi failed. Check password or signal strength."
+    log_error "Conexiunea a eșuat. Verificați credențialele."
+    exit 1
 fi

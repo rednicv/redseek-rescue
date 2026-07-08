@@ -101,6 +101,8 @@ mtools
 xorriso
 
 # BitLocker decryption
+# ⚠️ dislocker can break on Ubuntu Noble (mbedtls compat issue)
+#     Fallback: cryptsetup bitlkOpen (already included via cryptsetup deps)
 dislocker
 
 # Volume Shadow Copy (Windows restore points)
@@ -168,10 +170,12 @@ jq
 screen
 PKGLIST
 
-# Include our custom overlay (scripts, configs)
-mkdir -p "${BUILD_DIR}/config/includes.chroot/opt/rescue"
-cp -r "${SCRIPTS_DIR}" "${BUILD_DIR}/config/includes.chroot/opt/rescue/scripts"
-cp -r "${CONFIG_DIR}" "${BUILD_DIR}/config/includes.chroot/opt/rescue/config"
+# Include custom overlay (scripts, config, iso_overlay)
+# NOTE: use /./ suffix to copy CONTENTS, not the directory itself (avoids scripts/scripts/)
+mkdir -p "${BUILD_DIR}/config/includes.chroot/opt/rescue/scripts"
+mkdir -p "${BUILD_DIR}/config/includes.chroot/opt/rescue/config"
+cp -r "${SCRIPTS_DIR}/." "${BUILD_DIR}/config/includes.chroot/opt/rescue/scripts/"
+cp -r "${CONFIG_DIR}/." "${BUILD_DIR}/config/includes.chroot/opt/rescue/config/"
 cp -r "${ISO_OVERLAY}/"* "${BUILD_DIR}/config/includes.chroot/" 2>/dev/null || true
 
 # Fix dpkg start-stop-daemon PATH issue in chroot (Ubuntu Noble)
@@ -216,6 +220,12 @@ pip install --break-system-packages --no-cache-dir hermes-agent==0.18.0
 
 # Also install python-evtx in the same environment  
 pip install --break-system-packages --no-cache-dir python-evtx 2>/dev/null || true
+
+# Create symlink hermes-agent -> hermes for robustness
+if [ -f /usr/local/bin/hermes ] && [ ! -f /usr/local/bin/hermes-agent ]; then
+    ln -sf /usr/local/bin/hermes /usr/local/bin/hermes-agent
+    echo "[✓] Created symlink: hermes-agent -> hermes"
+fi
 
 echo "[✓] Hermes Agent installed"
 HERMES
@@ -309,20 +319,15 @@ echo ""
 
 cd "${BUILD_DIR}"
 
-# ⚠️ Disable set -e temporarily so retry logic actually works
+# live-build REQUIRES root — don't try without it first (corrupts build/)
+echo "[*] Running lb build with sudo (required for chroot + mount operations)..."
 set +e
-lb build 2>&1 | tee "${ROOT_DIR}/build.log"
+sudo lb build 2>&1 | tee "${ROOT_DIR}/build.log"
 BUILD_EXIT=${PIPESTATUS[0]}  # Get lb build's exit code, not tee's
 set -e
 
-if [ "${BUILD_EXIT}" -ne 0 ]; then
-  echo "[!] lb build failed. Retrying with sudo..."
-  set +e
-  sudo lb build 2>&1 | tee -a "${ROOT_DIR}/build.log"
-  BUILD_EXIT=${PIPESTATUS[0]}
-  set -e
-  sudo chown -R "$(whoami):$(whoami)" "${BUILD_DIR}" 2>/dev/null || true
-fi
+# Fix ownership so user can modify build/ after
+sudo chown -R "$(whoami):$(whoami)" "${BUILD_DIR}" 2>/dev/null || true
 
 if [ "${BUILD_EXIT}" -ne 0 ]; then
   echo "=== ❌ Build failed. Check build.log ==="

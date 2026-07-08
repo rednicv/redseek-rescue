@@ -1,39 +1,61 @@
 #!/usr/bin/env bash
-# utils.sh — Common helper functions for RedSeek Rescue scripts
-# Source this in other scripts: source "$(dirname "$0")/utils.sh"
+# RedSeek Rescue - utils.sh
+# Funcții helper globale, culori de jurnalizare, validări root
+set -euo pipefail
 
-MOUNT="/mnt/windows"
-LOGS_DIR="/opt/rescue/logs"
-STATUS_FILE="/opt/rescue/config/mount-status.txt"
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-# Case-insensitive find — handles Windows/windows, System32/system32, etc.
-# Usage: find_ci <base_dir> <maxdepth> <name_pattern>
-find_ci() {
-    find "$1" -maxdepth "$2" -iname "$3" 2>/dev/null | head -n1
+log_info()    { echo -e "${BLUE}[*]${NC} $*"; }
+log_success() { echo -e "${GREEN}[✓]${NC} $*"; }
+log_warn()    { echo -e "${YELLOW}[!]${NC} $*"; }
+log_error()   { echo -e "${RED}[✗]${NC} $*" >&2; }
+
+# Compatibilitate: alias log_warning -> log_warn
+log_warning() { log_warn "$*"; }
+
+require_root() {
+    if [ "$EUID" -ne 0 ]; then
+        log_error "Acest script trebuie rulat ca root (sudo)."
+        exit 1
+    fi
 }
 
-# Verify Windows is mounted, exit gracefully if not
-# Usage: verify_mount || exit 1
-verify_mount() {
-    if ! mountpoint -q "${MOUNT}"; then
-        echo "[!] Windows not mounted at ${MOUNT}. Run mount-windows.sh first."
-        return 1
-    fi
+# Verifică dacă PIPESTATUS e curat (toate 0)
+check_pipe() {
+    local statuses=("${PIPESTATUS[@]}")
+    for st in "${statuses[@]}"; do
+        if [ "$st" -ne 0 ]; then return 1; fi
+    done
     return 0
 }
 
-# Check if mount is read-only
-# Returns 0 (true) if RO, 1 (false) if RW
+# Verifică dacă un mount point e read-only
 is_readonly() {
-    # Check via mount flags directly (most reliable)
-    if mountpoint -q "${MOUNT}" 2>/dev/null; then
-        if grep -q "${MOUNT}.*ro[,\ ]" /proc/mounts 2>/dev/null; then
-            return 0
+    local mp="$1"
+    grep -q "[^ ]* $mp [^ ]* ro," /proc/mounts 2>/dev/null
+}
+
+# Căutare case-insensitive — parcurge calea pas cu pas
+# Exemplu: find_ci /mnt/windows "Windows/System32/config"
+find_ci() {
+    local base="$1"
+    local path="$2"
+    local current="$base"
+
+    IFS='/' read -ra parts <<< "$path"
+    for part in "${parts[@]}"; do
+        if [ -z "$part" ]; then continue; fi
+        local match
+        match=$(find "$current" -maxdepth 1 -iname "$part" -print -quit 2>/dev/null || true)
+        if [ -z "$match" ]; then
+            echo ""
+            return 1
         fi
-    fi
-    # Fallback: check status file
-    if [ -f "${STATUS_FILE}" ]; then
-        grep -qi "ro" "${STATUS_FILE}" 2>/dev/null && return 0
-    fi
-    return 1
+        current="$match"
+    done
+    echo "$current"
 }

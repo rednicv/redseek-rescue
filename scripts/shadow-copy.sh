@@ -1,52 +1,39 @@
 #!/usr/bin/env bash
-# shadow-copy.sh — Access Windows Volume Shadow Copies (restore points) from Linux
-# Uses libvshadow to list and mount restore points
+# RedSeek Rescue - shadow-copy.sh
+# Identifică și montează Volume Shadow Copies (puncte de restaurare)
+
 set -euo pipefail
 
-MOUNT="/mnt/windows"
-LOGS_DIR="/opt/rescue/logs"
-SHADOW_MOUNT="/mnt/shadow"
-mkdir -p "${LOGS_DIR}" "${SHADOW_MOUNT}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+source "${SCRIPT_DIR}/utils.sh"
 
-echo "=== Volume Shadow Copy (Restore Points) ===" | tee "${LOGS_DIR}/shadow-copy.log"
-echo "Date: $(date)" | tee -a "${LOGS_DIR}/shadow-copy.log"
-echo "" | tee -a "${LOGS_DIR}/shadow-copy.log"
+require_root
 
-if ! mountpoint -q "${MOUNT}"; then
-  echo "[!] Windows not mounted." | tee -a "${LOGS_DIR}/shadow-copy.log"
-  exit 1
+WIN_PART=""
+for p in $(lsblk -lno NAME,FSTYPE | awk '$2=="ntfs" {print "/dev/"$1}'); do
+    WIN_PART="$p"; break
+done
+
+if [ -z "$WIN_PART" ]; then
+    log_error "Partiția NTFS brută nu a fost găsită."
+    exit 1
 fi
 
-# Find the Windows system drive PARTITION (vshadowinfo needs partition, not disk)
-WIN_DEV=$(findmnt -n -o SOURCE "${MOUNT}" 2>/dev/null || echo "")
-if [ -z "${WIN_DEV}" ]; then
-  WIN_DEV=$(lsblk -o NAME,MOUNTPOINT -n -l | grep "${MOUNT}" | awk '{print "/dev/"$1}')
-fi
+VSS_DIR="/mnt/vss"
+VSS_MOUNT="/mnt/shadow_mount"
+mkdir -p "$VSS_DIR" "$VSS_MOUNT"
 
-echo "[+] Windows device: ${WIN_DEV}" | tee -a "${LOGS_DIR}/shadow-copy.log"
+log_info "Analiză Volume Shadow Copies pe $WIN_PART..."
+vshadowinfo "$WIN_PART" || { log_error "Nu există snapshot-uri disponibile."; exit 1; }
 
-# Check for shadow copies
-echo "[+] Scanning for Volume Shadow Copies..." | tee -a "${LOGS_DIR}/shadow-copy.log"
-vshadowinfo "${WIN_DEV}" 2>/dev/null > "${LOGS_DIR}/shadow-info.txt" || {
-  echo "    No shadow copies found (or tool not available)" | tee -a "${LOGS_DIR}/shadow-copy.log"
-  echo "    libvshadow tools may not be installed." | tee -a "${LOGS_DIR}/shadow-copy.log"
-  exit 0
-}
+log_info "Se montează metastructura VSS..."
+vshadowmount "$WIN_PART" "$VSS_DIR"
 
-cat "${LOGS_DIR}/shadow-info.txt" | tee -a "${LOGS_DIR}/shadow-copy.log"
+log_info "Snapshot-uri disponibile:"
+ls -l "$VSS_DIR"
 
-# Count shadow copies
-SHADOW_COUNT=$(grep -c "Store:" "${LOGS_DIR}/shadow-info.txt" 2>/dev/null || echo 0)
-echo "" | tee -a "${LOGS_DIR}/shadow-copy.log"
-echo "[+] Found ${SHADOW_COUNT} shadow copy store(s)" | tee -a "${LOGS_DIR}/shadow-copy.log"
-
-# If shadow copies exist, try to mount the latest one
-if [ "${SHADOW_COUNT}" -gt 0 ]; then
-  echo "" | tee -a "${LOGS_DIR}/shadow-copy.log"
-  echo "    To mount a shadow copy manually:" | tee -a "${LOGS_DIR}/shadow-copy.log"
-  echo "    vshadowmount ${WIN_DEV} ${SHADOW_MOUNT}" | tee -a "${LOGS_DIR}/shadow-copy.log"
-  echo "    mount -o loop,ro ${SHADOW_MOUNT}/shadowX /mnt/shadow-data" | tee -a "${LOGS_DIR}/shadow-copy.log"
-  echo "" | tee -a "${LOGS_DIR}/shadow-copy.log"
-  echo "    Then you can copy registry/backups from restore point:" | tee -a "${LOGS_DIR}/shadow-copy.log"
-  echo "    cp /mnt/shadow-data/Windows/System32/config/SYSTEM /opt/rescue/registry-backup/" | tee -a "${LOGS_DIR}/shadow-copy.log"
+if [ -f "${VSS_DIR}/vss1" ]; then
+    log_info "Se montează vss1..."
+    ntfs-3g "${VSS_DIR}/vss1" "$VSS_MOUNT" -o ro,ignore_case
+    log_success "Snapshot 1 disponibil la $VSS_MOUNT"
 fi

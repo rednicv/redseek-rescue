@@ -1,22 +1,28 @@
 #!/usr/bin/env bash
-# unmount-windows.sh — Safely unmount Windows partitions
+# RedSeek Rescue - unmount-windows.sh
+# Demontare sigură cu golire cache și curățare loopback
+
 set -euo pipefail
 
-RESCUE_DIR="/opt/rescue"
-MOUNT_POINT="/mnt/windows"
-STATUS_FILE="${RESCUE_DIR}/config/mount-status.txt"
-BITLOCKER_MOUNT="/mnt/bitlocker"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+source "${SCRIPT_DIR}/utils.sh"
 
-echo "[$(date)] Unmounting..." | tee "${RESCUE_DIR}/logs/unmount.log"
+require_root
 
+MOUNT_BASE="/mnt/windows"
+BITLOCKER_DIR="/mnt/bitlocker"
+
+log_info "Se golește cache-ul de scriere (sync)..."
 sync
 
-# Unmount Windows
-umount "${MOUNT_POINT}" 2>/dev/null && echo "[✅] Windows unmounted." | tee -a "${RESCUE_DIR}/logs/unmount.log" || echo "[!] Nothing to unmount at ${MOUNT_POINT}." | tee -a "${RESCUE_DIR}/logs/unmount.log"
+if mountpoint -q "$MOUNT_BASE"; then
+    log_info "Se demontează $MOUNT_BASE..."
+    umount -l "$MOUNT_BASE"
+fi
 
-# Unmount BitLocker if mounted
-umount "${BITLOCKER_MOUNT}" 2>/dev/null || true
+if mountpoint -q "$BITLOCKER_DIR"; then
+    log_info "Se demontează containerul BitLocker..."
+    umount -l "$BITLOCKER_DIR"
+fi
 
-# Clean up status files
-rm -f "${STATUS_FILE}"
-echo "[🧹] Status files cleaned." | tee -a "${RESCUE_DIR}/logs/unmount.log"
+log_success "Sistemul de fișiere deblocat și demontat în siguranță."

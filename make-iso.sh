@@ -85,31 +85,48 @@ menuentry "RedSeek Rescue (Safe Graphics)" {
 }
 GRUBEOF
 
-# Build GRUB EFI
+# ==========================================
+# 1. Build GRUB EFI & FAT Image for UEFI
+# ==========================================
 echo "[*] Building GRUB EFI..."
 mkdir -p /tmp/iso-staging/EFI/BOOT
-grub-mkstandalone -O x86_64-efi -o /tmp/iso-staging/EFI/BOOT/BOOTx64.EFI "boot/grub/grub.cfg=/tmp/iso-staging/boot/grub/grub.cfg"
+grub-mkstandalone -O x86_64-efi -o /tmp/iso-staging/EFI/BOOT/BOOTx64.EFI \
+  "boot/grub/grub.cfg=/tmp/iso-staging/boot/grub/grub.cfg"
 
-# Build GRUB BIOS core.img with all needed modules
+# UEFI firmware requires a FAT image via El Torito, not a raw .EFI
+echo "[*] Creating UEFI FAT image (efiboot.img)..."
+dd if=/dev/zero of=/tmp/iso-staging/boot/grub/efiboot.img bs=1M count=4 status=none
+mformat -i /tmp/iso-staging/boot/grub/efiboot.img -F ::
+mmd -i /tmp/iso-staging/boot/grub/efiboot.img ::/EFI
+mmd -i /tmp/iso-staging/boot/grub/efiboot.img ::/EFI/BOOT
+mcopy -i /tmp/iso-staging/boot/grub/efiboot.img /tmp/iso-staging/EFI/BOOT/BOOTx64.EFI ::/EFI/BOOT/BOOTx64.EFI
+
+# ==========================================
+# 2. Build GRUB BIOS with El Torito boot sector
+# ==========================================
 echo "[*] Building GRUB BIOS..."
 grub-mkimage -O i386-pc -o /tmp/core.img -p "(cd)/boot/grub" \
-  biosdisk iso9660 ext2 fat ntfs part_msdos part_gpt normal linux configfile search ls test
+  biosdisk iso9660 ext2 fat ntfs part_msdos part_gpt normal linux configfile search ls test eltorito
 
-cp /tmp/core.img /tmp/iso-staging/boot/grub/core.img
+# BIOS boot record requires cdboot.img prepended to core.img
+cat /usr/lib/grub/i386-pc/cdboot.img /tmp/core.img > /tmp/iso-staging/boot/grub/bios.img
 
-# Build hybrid ISO
+# ==========================================
+# 3. Build hybrid ISO (xorriso)
+# ==========================================
 echo "[*] Building ISO with xorriso..."
 xorriso -as mkisofs \
   -iso-level 3 \
   -full-iso9660-filenames \
   -volid "REDSEEK_RESCUE" \
-  -eltorito-boot boot/grub/core.img \
+  -eltorito-boot boot/grub/bios.img \
   -no-emul-boot \
   -boot-load-size 4 \
   -boot-info-table \
   -eltorito-alt-boot \
-  -e EFI/BOOT/BOOTx64.EFI \
+  -e boot/grub/efiboot.img \
   -no-emul-boot \
+  -isohybrid-gpt-basdat \
   -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
   -o "$ISO_OUT" /tmp/iso-staging
 
