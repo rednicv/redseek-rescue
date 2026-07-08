@@ -1,19 +1,27 @@
 ---
-name: Feature Request
-about: Suggest an idea
-title: "[Feature] "
+name: Feature request
+about: Propune o idee pentru RedSeek Rescue
+title: '[FEATURE] '
 labels: enhancement
 assignees: ''
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**Problema asociată**
+O descriere clară a problemei pe care o rezolvă această cerere. Ex: „Este frustrant când nu pot ..."
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**Soluția dorită**
+Ce ai vrea să se întâmple.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Alternative luate în considerare**
+Alte abordări sau workaround-uri pe care le-ai încercat.
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+**Script / Componentă vizată**
+- [ ] build.sh (ISO build)
+- [ ] make-iso.sh (xorriso assembly)
+- [ ] Script existent (`scripts/...`)
+- [ ] Script nou
+- [ ] CI/CD
+- [ ] Documentație
+
+**Context suplimentar**
+Mockups, exemple de cod, capturi de ecran.

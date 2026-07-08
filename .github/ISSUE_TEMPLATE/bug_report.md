@@ -1,31 +1,38 @@
 ---
-name: Bug Report
-about: Something isn't working
-title: "[Bug] "
+name: Bug report
+about: Raportează o problemă pentru a ne ajuta să îmbunătățim RedSeek Rescue
+title: '[BUG] '
 labels: bug
 assignees: ''
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Descrierea problemei**
+O descriere clară și concisă a bug-ului.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Boot from USB on...
-2. Run command...
-3. See error...
+**Pași pentru reproducere**
+1. Rulează `./build.sh` (sau scriptul afectat)
+2. Selectează opțiunea ...
+3. Observă eroarea ...
 
-**Expected behavior**
-What you expected to happen.
+**Comportament așteptat**
+Ce ar fi trebuit să se întâmple.
 
-**Environment**
-- RedSeek Rescue version: [e.g., v1.0.0]
-- PC model / specs: [e.g., Dell Latitude 5490, i5-8350U, 8GB RAM]
-- Windows version on the broken PC: [e.g., Windows 10 22H2]
-- WiFi chipset (if relevant): [e.g., Intel AX200]
+**Comportament actual**
+Ce s-a întâmplat de fapt.
 
-**Screenshots / Logs**
-If applicable, add screenshots or paste terminal output.
+**Loguri**
+Dacă rulezi build.sh, atașează `build.log`. Pentru scripturi individuale, copiază output-ul terminalului.
 
-**Additional context**
-Add any other context about the problem here.
+```bash
+# rulează din rădăcina proiectului
+bash -n scripts/nume-script.sh
+```
+
+**Mediu (completează):**
+- Mediu de boot: [Live ISO / VPS / VM]
+- Arhitectură: [amd64 / arm64]
+- Versiune ISO: [v1.5.0 / custom build]
+- Versiune live-build: `dpkg -s live-build | grep Version`
+
+**Context suplimentar**
+Orice altceva relevant.
