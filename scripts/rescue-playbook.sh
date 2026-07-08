@@ -125,10 +125,12 @@ for script in ${SCRIPTS}; do
     
     echo -e "${GREEN}▶${NC} Rulare: ${script}..."
     
-    if bash "${SCRIPT_PATH}" 2>&1 | sed 's/^/  │ /'; then
+    bash "${SCRIPT_PATH}" 2>&1 | sed 's/^/  │ /'
+    RC="${PIPESTATUS[0]}"
+    if [ "${RC}" -eq 0 ]; then
         echo -e "  ${GREEN}✅${NC} ${script} — OK"
     else
-        echo -e "  ${RED}❌${NC} ${script} — EȘUAT (exit code: ${PIPESTATUS[0]})"
+        echo -e "  ${RED}❌${NC} ${script} — EȘUAT (exit code: ${RC})"
         FAILED=$((FAILED + 1))
     fi
     echo ""

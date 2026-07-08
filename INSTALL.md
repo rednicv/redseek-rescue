@@ -15,7 +15,7 @@ A step-by-step guide to create your rescue USB and boot from it. No Linux knowle
 
 ## Step 1: Download the ISO
 
-Go to [GitHub Releases](https://github.com/rednicv/redseek-rescue/releases) and download the latest `redseek-rescue-v1.0.iso` (~1.5 GB).
+Go to [GitHub Releases](https://github.com/rednicv/redseek-rescue/releases) and download the latest `redseek-rescue-v1.x.iso` (~1.5 GB).
 
 ---
 
@@ -35,7 +35,7 @@ Rufus is the recommended tool for writing the ISO to USB on Windows.
 
 1. **Insert your USB stick** into the working computer
 2. **Open Rufus** (double-click the .exe file you downloaded)
-3. Click the **SELECT** button and choose `redseek-rescue-v1.0.iso`
+3. Click the **SELECT** button and choose `redseek-rescue-v1.x.iso`
 4. Under "Partition scheme", leave it on **MBR** (works on most PCs)
 5. Under "Target system", leave it on **BIOS or UEFI**
 6. Click **START**
@@ -50,7 +50,7 @@ Rufus is the recommended tool for writing the ISO to USB on Windows.
 │  Device:  [USB Drive (16 GB)]      ▾     │
 │  ──────────────────────────────          │
 │  Boot selection:                         │
-│  [redseek-rescue-v1.0.iso]  [SELECT]     │
+│  [redseek-rescue-v1.x.iso]  [SELECT]     │
 │  ──────────────────────────────          │
 │  Partition scheme:  [MBR]          ▾     │
 │  Target system:     [BIOS or UEFI] ▾     │

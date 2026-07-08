@@ -26,9 +26,8 @@ nm_connect() {
   local ssid="$1"
   local pass="$2"
   if [ -n "${pass}" ]; then
-    # Pass password via stdin — not as CLI arg (avoids /proc/cmdline leak)
-    printf '%s\n' "${pass}" | nmcli --ask device wifi connect "${ssid}" 2>&1 || \
-      nmcli device wifi connect "${ssid}" password "${pass}" 2>&1
+    # Pass password via stdin — never as CLI arg (avoids leak to ps aux / /proc/cmdline)
+    printf '%s\n' "${pass}" | nmcli --ask device wifi connect "${ssid}" 2>&1
   else
     nmcli device wifi connect "${ssid}" 2>&1
   fi

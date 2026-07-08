@@ -25,8 +25,15 @@ verify_mount() {
 # Check if mount is read-only
 # Returns 0 (true) if RO, 1 (false) if RW
 is_readonly() {
+    # Check via mount flags directly (most reliable)
+    if mountpoint -q "${MOUNT}" 2>/dev/null; then
+        if grep -q "${MOUNT}.*ro[,\ ]" /proc/mounts 2>/dev/null; then
+            return 0
+        fi
+    fi
+    # Fallback: check status file
     if [ -f "${STATUS_FILE}" ]; then
-        grep -q "ro" "${STATUS_FILE}" 2>/dev/null && return 0
+        grep -qi "ro" "${STATUS_FILE}" 2>/dev/null && return 0
     fi
     return 1
 }
