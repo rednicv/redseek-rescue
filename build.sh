@@ -245,57 +245,114 @@ SSHCFG
 mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/skel"
 cat > "${BUILD_DIR}/config/includes.chroot/etc/skel/.profile" << 'PROFILE'
 #!/bin/bash
-# Only run Hermes on local TTY (not SSH/SCP)
+# RedSeek Rescue — Auto-start: AI (cu net) sau Offline Playbook (fără net)
+set -euo pipefail
+
+# Only run on local TTY (not SSH/SCP)
 if [ ! -t 0 ] || [ -n "${SSH_CONNECTION:-}" ] || [ -n "${SSH_TTY:-}" ]; then
     exec bash --login
 fi
-CRASH_COUNT=0
-MAX_CRASHES=3
-CRASH_WINDOW=10  # seconds — if 3 crashes within this window, drop to shell
 
-while true; do
-    clear
+# ─── Banner ───
+clear
+echo "╔═══════════════════════════════════════════╗"
+echo "║      RedSeek Rescue by rednic            ║"
+echo "║      AI-powered system rescue tool       ║"
+echo "╚═══════════════════════════════════════════╝"
+echo ""
+
+# ─── Detectare rețea ───
+HAS_NET=false
+if ping -c 1 -W 2 8.8.8.8 &>/dev/null || ping -c 1 -W 2 1.1.1.1 &>/dev/null; then
+    HAS_NET=true
+fi
+
+offline_mode() {
+    echo "⚠️  Fără conexiune la internet — mod OFFLINE"
+    echo ""
+    echo " Rulez playbook-ul automat de reparații..."
+    echo ""
+    /opt/rescue/scripts/rescue-playbook.sh --offline
+    echo ""
     echo "╔═══════════════════════════════════════════╗"
-    echo "║      RedSeek Rescue by rednic            ║"
-    echo "║      AI-powered system rescue tool       ║"
+    echo "║  Reparație offline finalizată.           ║"
     echo "╚═══════════════════════════════════════════╝"
     echo ""
-    echo "Starting AI rescue agent..."
+    while true; do
+        echo "  Opțiuni:"
+        echo "    ai      → reîncearcă cu Hermes AI"
+        echo "    shell   → drop to shell"
+        echo "    reboot  → restart sistem"
+        echo -n "  alegere (ai/shell/reboot): "
+        read -r choice
+        case "$choice" in
+            ai)     return ;;
+            shell)  exec bash --login ;;
+            reboot) sudo reboot ;;
+            *)      echo "  alegere invalidă." ;;
+        esac
+    done
+}
+
+ai_mode() {
+    echo " Conexiune la internet detectată."
+    echo " Pornesc asistentul AI Hermes..."
     echo ""
+    CRASH_COUNT=0
+    MAX_CRASHES=3
+    CRASH_WINDOW=10
 
-    START_TIME=$(date +%s)
-    hermes run /opt/rescue/config/rescue-prompt.txt
-    EXIT_CODE=$?
-
-    NOW=$(date +%s)
-    if [ $((NOW - START_TIME)) -lt "$CRASH_WINDOW" ] && [ "$EXIT_CODE" -ne 0 ]; then
-        CRASH_COUNT=$((CRASH_COUNT + 1))
-    else
-        CRASH_COUNT=0
-    fi
-
-    if [ "$CRASH_COUNT" -ge "$MAX_CRASHES" ]; then
+    while true; do
         clear
         echo "╔═══════════════════════════════════════════╗"
-        echo "║  Hermes crashed $CRASH_COUNT times in a row.  ║"
-        echo "║  Dropping to shell...                    ║"
+        echo "║      RedSeek Rescue by rednic            ║"
+        echo "║      AI-powered system rescue tool       ║"
         echo "╚═══════════════════════════════════════════╝"
-        exec bash --login
-    fi
+        echo ""
 
-    clear
-    echo ""
-    echo "╔═══════════════════════════════════════════╗"
-    echo "║  Hermes has stopped.                     ║"
-    echo "╚═══════════════════════════════════════════╝"
-    echo "  Type 'hermes'   → restart AI assistant"
-    echo "  Type 'manual'   → drop to shell"
-    read -p "hermes/manual> " choice
-    case "$choice" in
-        manual) exec bash --login ;;
-        *) echo "Restarting..." ; CRASH_COUNT=0 ;;
-    esac
-done
+        START_TIME=$(date +%s)
+        hermes run /opt/rescue/config/rescue-prompt.txt
+        EXIT_CODE=$?
+
+        NOW=$(date +%s)
+        if [ $((NOW - START_TIME)) -lt "$CRASH_WINDOW" ] && [ "$EXIT_CODE" -ne 0 ]; then
+            CRASH_COUNT=$((CRASH_COUNT + 1))
+        else
+            CRASH_COUNT=0
+        fi
+
+        if [ "$CRASH_COUNT" -ge "$MAX_CRASHES" ]; then
+            clear
+            echo "╔═══════════════════════════════════════════╗"
+            echo "║  Hermes crashed $CRASH_COUNT times.        ║"
+            echo "║  Comut în modul offline.                  ║"
+            echo "╚═══════════════════════════════════════════╝"
+            echo ""
+            /opt/rescue/scripts/rescue-playbook.sh --offline
+            exec bash --login
+        fi
+
+        clear
+        echo ""
+        echo "╔═══════════════════════════════════════════╗"
+        echo "║  Hermes s-a oprit.                       ║"
+        echo "╚═══════════════════════════════════════════╝"
+        echo "  Type 'hermes'   → restart AI"
+        echo "  Type 'manual'   → drop to shell"
+        read -p "hermes/manual> " choice
+        case "$choice" in
+            manual) exec bash --login ;;
+            *)      echo "Restarting..." ; CRASH_COUNT=0 ;;
+        esac
+    done
+}
+
+# ─── Main ───
+if $HAS_NET; then
+    ai_mode
+else
+    offline_mode
+fi
 PROFILE
 
 # Boot splash
