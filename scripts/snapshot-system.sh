@@ -16,5 +16,6 @@ CONFIG_PATH=$(find_ci "$MOUNT_BASE" "Windows/System32/config")
 if [ -n "$CONFIG_PATH" ] && [ -d "$CONFIG_PATH" ]; then
     log_info "Salvare snapshot registru..."
     cp -a "$CONFIG_PATH"/* "$SNAP_DIR/"
+    touch "$SNAPSHOT_SENTINEL"
     log_success "Snapshot salvat în $SNAP_DIR"
 fi

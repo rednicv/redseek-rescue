@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPT_DIR}/utils.sh"
 
 require_root
+require_snapshot
 
 log_info "Scanare partiții de sistem EFI..."
 for part in $(lsblk -lno NAME,FSTYPE | awk '$2=="vfat" {print "/dev/"$1}'); do

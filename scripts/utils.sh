@@ -39,6 +39,18 @@ is_readonly() {
     grep -q "[^ ]* $mp [^ ]* ro," /proc/mounts 2>/dev/null
 }
 
+# Sentinel path pentru snapshot obligatoriu
+SNAPSHOT_SENTINEL="/opt/rescue/.snapshot_taken"
+
+# Forțează snapshot înainte de operații distructive
+require_snapshot() {
+    if [ ! -f "$SNAPSHOT_SENTINEL" ]; then
+        log_error "Snapshot necesar înainte de operația distructivă."
+        log_error "Rulează: snapshot-system.sh"
+        exit 1
+    fi
+}
+
 # Căutare case-insensitive — parcurge calea pas cu pas
 # Exemplu: find_ci /mnt/windows "Windows/System32/config"
 find_ci() {

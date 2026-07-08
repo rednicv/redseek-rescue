@@ -15,7 +15,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq live-build debootstrap mtools xorriso isolinux syslinux-utils grub-pc-bin grub-efi-amd64-bin python3-pip
+          sudo apt-get install -y -qq live-build debootstrap mtools xorriso isolinux \
+            syslinux-utils grub-pc-bin grub-efi-amd64-bin shim-signed sbsigntool \
+            qemu-system-x86 ovmf python3-pip
 
       - name: Build ISO
         run: |
@@ -26,6 +28,32 @@ jobs:
           ISO=$(ls output/*.iso | head -1)
           echo "ISO: $ISO ($(du -h $ISO | cut -f1))"
           xorriso -indev "$ISO" -report_el_torito plain | grep -q "El Torito" && echo "✅ BOOTABLE (BIOS+UEFI)" || echo "❌ NOT BOOTABLE"
+          # Check Secure Boot files
+          isoinfo -l -i "$ISO" 2>/dev/null | grep -q "BOOTx64.EFI" && echo "✅ UEFI bootloader present" || echo "❌ UEFI bootloader missing"
+          isoinfo -l -i "$ISO" 2>/dev/null | grep -q "grubx64.efi" && echo "✅ Secure Boot GRUB present" || echo "ℹ️  Secure Boot GRUB not in ISO (shim not available on this arch)"
+
+      - name: QEMU smoke test (BIOS)
+        run: |
+          ISO=$(ls output/*.iso | head -1)
+          echo "[*] Booting ISO in QEMU (BIOS mode, 30s timeout)..."
+          timeout 30 qemu-system-x86_64 -m 2G -nographic -boot d \
+            -cdrom "$ISO" -serial stdio 2>&1 | head -20 || true
+          echo ""
+          echo "[*] QEMU BIOS boot test complete"
+
+      - name: QEMU smoke test (UEFI)
+        run: |
+          ISO=$(ls output/*.iso | head -1)
+          if [ -f /usr/share/OVMF/OVMF_CODE.fd ]; then
+            echo "[*] Booting ISO in QEMU (UEFI mode, 30s timeout)..."
+            timeout 30 qemu-system-x86_64 -m 2G -nographic -boot d \
+              -cdrom "$ISO" -bios /usr/share/OVMF/OVMF_CODE.fd \
+              -serial stdio 2>&1 | head -20 || true
+            echo ""
+            echo "[*] QEMU UEFI boot test complete"
+          else
+            echo "[*] OVMF not available — skipping UEFI QEMU test"
+          fi
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4

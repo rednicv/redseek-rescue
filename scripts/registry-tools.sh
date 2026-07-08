@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPT_DIR}/utils.sh"
 
 require_root
+require_snapshot
 
 MOUNT_BASE="/mnt/windows"
 SYSTEM_HIVE=$(find_ci "$MOUNT_BASE" "Windows/System32/config/SYSTEM")

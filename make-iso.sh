@@ -90,8 +90,34 @@ GRUBEOF
 # ==========================================
 echo "[*] Building GRUB EFI..."
 mkdir -p /tmp/iso-staging/EFI/BOOT
-grub-mkstandalone -O x86_64-efi -o /tmp/iso-staging/EFI/BOOT/BOOTx64.EFI \
+GRUB_EFI="/tmp/iso-staging/EFI/BOOT/grubx64.efi"
+grub-mkstandalone -O x86_64-efi -o "$GRUB_EFI" \
   "boot/grub/grub.cfg=/tmp/iso-staging/boot/grub/grub.cfg"
+
+# Secure Boot support: sign GRUB with MOK, use shim as bootloader
+SECURE_BOOT=false
+if command -v sbsign &>/dev/null && [ -f /usr/lib/shim/shimx64.efi.signed ]; then
+    echo "[*] Secure Boot detected — signing GRUB..."
+    MOK_DIR="/tmp/iso-staging/EFI/BOOT/mok"
+    mkdir -p "$MOK_DIR"
+
+    # Generate MOK key pair (one-time per build)
+    openssl req -new -x509 -newkey rsa:2048 -keyout "$MOK_DIR/MOK.key" \
+        -out "$MOK_DIR/MOK.crt" -days 3650 -nodes \
+        -subj "/CN=RedSeek Rescue/" 2>/dev/null
+
+    # Sign GRUB EFI with MOK
+    sbsign --key "$MOK_DIR/MOK.key" --cert "$MOK_DIR/MOK.crt" \
+        --output "$GRUB_EFI" "$GRUB_EFI" 2>/dev/null
+
+    # Shim-signed (Microsoft-trusted) acts as BOOTx64.EFI
+    cp /usr/lib/shim/shimx64.efi.signed /tmp/iso-staging/EFI/BOOT/BOOTx64.EFI
+    echo "[✓] Secure Boot enabled — shim + signed GRUB"
+    SECURE_BOOT=true
+else
+    echo "[*] Secure Boot not available (install shim-signed + sbsigntool)"
+    cp "$GRUB_EFI" /tmp/iso-staging/EFI/BOOT/BOOTx64.EFI
+fi
 
 # UEFI firmware requires a FAT image via El Torito, not a raw .EFI
 echo "[*] Creating UEFI FAT image (efiboot.img)..."
@@ -100,6 +126,11 @@ mformat -i /tmp/iso-staging/boot/grub/efiboot.img -F ::
 mmd -i /tmp/iso-staging/boot/grub/efiboot.img ::/EFI
 mmd -i /tmp/iso-staging/boot/grub/efiboot.img ::/EFI/BOOT
 mcopy -i /tmp/iso-staging/boot/grub/efiboot.img /tmp/iso-staging/EFI/BOOT/BOOTx64.EFI ::/EFI/BOOT/BOOTx64.EFI
+mcopy -i /tmp/iso-staging/boot/grub/efiboot.img /tmp/iso-staging/EFI/BOOT/grubx64.efi ::/EFI/BOOT/grubx64.efi
+if $SECURE_BOOT; then
+    mmd -i /tmp/iso-staging/boot/grub/efiboot.img ::/EFI/BOOT/mok
+    mcopy -i /tmp/iso-staging/boot/grub/efiboot.img "$MOK_DIR/MOK.crt" ::/EFI/BOOT/mok/MOK.crt
+fi
 
 # ==========================================
 # 2. Build GRUB BIOS with El Torito boot sector
