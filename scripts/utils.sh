@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 rednicv
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 # RedSeek Rescue - utils.sh
 # Funcții helper globale, culori de jurnalizare, validări root
 set -euo pipefail

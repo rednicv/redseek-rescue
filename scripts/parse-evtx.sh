@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 rednicv
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 # RedSeek Rescue - parse-evtx.sh
 # Extrage și parsează loguri .evtx în XML prin python-evtx
 

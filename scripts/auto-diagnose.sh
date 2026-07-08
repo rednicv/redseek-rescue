@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 rednicv
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 # RedSeek Rescue - auto-diagnose.sh
 # Mod nesupravegheat (Zero-Click) — colectează loguri și exportă JSON
 
