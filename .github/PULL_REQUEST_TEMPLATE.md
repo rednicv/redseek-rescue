@@ -20,6 +20,7 @@ O descriere clară a modificărilor propuse.
 - [ ] make-iso.sh: EFI + BIOS boot funcțional (dacă e cazul)
 - [ ] Am testat local și funcționează
 - [ ] Am actualizat documentația dacă e necesar
+- [ ] Sunt de acord ca modificările mele să fie licențiate sub **MIT License** (vezi [/LICENSE](/LICENSE))
 
 ## Testare
 

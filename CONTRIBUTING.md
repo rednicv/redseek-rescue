@@ -38,6 +38,11 @@ Thanks for wanting to help! Here's how.
 
 Open an Issue — happy to help.
 
+## License
+
+By contributing, you agree that your contributions will be licensed under the **MIT License**.
+See the [LICENSE](/LICENSE) file in the project root.
+
 ---
 
 **by [rednic](https://github.com/rednicv)**
