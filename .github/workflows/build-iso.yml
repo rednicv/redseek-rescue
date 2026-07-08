@@ -2,44 +2,47 @@ name: Build ISO
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:  # poți porni manual din GitHub
+    tags:
+      - 'v*'           # rulează doar la tag-uri noi (v1.6.0, v1.7.0...)
+  workflow_dispatch:    # sau manual din GitHub UI
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # live-build funcționează pe 22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y live-build debootstrap mtools xorriso isolinux syslinux-utils grub-pc-bin grub-efi-amd64-bin
-      
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq live-build debootstrap mtools xorriso isolinux syslinux-utils grub-pc-bin grub-efi-amd64-bin python3-pip
+
       - name: Build ISO
         run: |
           sudo bash build.sh 2>&1 | tee build.log
-      
-      - name: Check bootability
+
+      - name: Verify bootability
         run: |
           ISO=$(ls output/*.iso | head -1)
           echo "ISO: $ISO ($(du -h $ISO | cut -f1))"
-          xorriso -indev $ISO -report_el_torito plain | grep "El Torito" && echo "✅ BOOTABLE" || echo "❌ NOT BOOTABLE"
-      
-      - name: Upload ISO
+          xorriso -indev "$ISO" -report_el_torito plain | grep -q "El Torito" && echo "✅ BOOTABLE (BIOS+UEFI)" || echo "❌ NOT BOOTABLE"
+
+      - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: redseek-rescue-iso
           path: output/*.iso
-          retention-days: 7
-      
-      - name: Create Release (if push to main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          VERSION=$(cat VERSION)
-          gh release create "v$VERSION" \
-            --title "RedSeek Rescue v$VERSION" \
-            --notes "Automated build from commit ${{ github.sha }}" \
-            output/*.iso || echo "Release may already exist"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          retention-days: 30
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/*.iso
+          name: RedSeek Rescue ${{ github.ref_name }}
+          body: |
+            Automated ISO build from commit ${{ github.sha }}
+            
+            **Boot:** BIOS Legacy + UEFI hybrid
+            **Scripturi:** 24 defensive scripts
+            **AI:** Hermes Agent + DeepSeek (AI mode) + Offline playbook
+          generate_release_notes: true
