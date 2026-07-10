@@ -39,3 +39,18 @@ with evtx.Evtx('$SYS_EVTX') as log:
 else
     log_error "System.evtx lipsă."
 fi
+
+# --- Sanitizare date confidențiale înainte de analiză ---
+log_info "Se curăță datele sensibile din jurnale..."
+
+# 1. IP-uri reale (exclus versiuni de sistem gen 10.0.19041.546)
+#    Folosește Perl PCRE cu lookarounds + validare matematică octet 0-255
+perl -pi -e 's/(?<!\d)(?<!\d\.)\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b(?!\.\d)/X.X.X.X/g' "${OUT_DIR}"/* 2>/dev/null || true
+
+# 2. Căi utilizator Windows (C:\Users\Vasile → C:\Users\ANONYMOUS_USER)
+sed -i -E 's/([cC]:\\[uU]sers\\)([^\\]+)/\1ANONYMOUS_USER/g' "${OUT_DIR}"/* 2>/dev/null || true
+
+# 3. SID-uri utilizator (S-1-5-21-... → S-1-5-21-ANONYMOUS-SID)
+sed -i -E 's/S-1-5-21-[0-9]+-[0-9]+-[0-9]+-[0-9]+/S-1-5-21-ANONYMOUS-SID/g' "${OUT_DIR}"/* 2>/dev/null || true
+
+log_success "Jurnale sanitizate — pregătite pentru analiză."
