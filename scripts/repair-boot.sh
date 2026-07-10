@@ -3,7 +3,7 @@
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 # RedSeek Rescue - repair-boot.sh
-# Reconstruiește fișierele de boot și inspectează partiția EFI
+# Inspectează partiția EFI și validează integritatea BCD
 
 set -euo pipefail
 
@@ -14,13 +14,33 @@ require_root
 require_snapshot
 
 log_info "Scanare partiții de sistem EFI..."
+
+# Folder temporar unic, creat o singură dată în afara buclei
+TMP_EFI=$(mktemp -d)
+trap 'rmdir "$TMP_EFI" 2>/dev/null' EXIT
+
+EFI_FOUND=false
+
 for part in $(lsblk -lno NAME,FSTYPE | awk '$2=="vfat" {print "/dev/"$1}'); do
-    tmp_efi=$(mktemp -d)
-    mount "$part" "$tmp_efi" 2>/dev/null || continue
-    if [ -d "$tmp_efi/EFI/Microsoft" ]; then
+    mount "$part" "$TMP_EFI" 2>/dev/null || continue
+
+    if [ -d "$TMP_EFI/EFI/Microsoft" ]; then
+        EFI_FOUND=true
         log_success "Tabelă de boot Microsoft detectată pe $part"
         log_info "Verificare BCD..."
-        ls -la "$tmp_efi/EFI/Microsoft/Boot/BCD" || log_error "BCD lipsește pe $part!"
+
+        if [ -f "$TMP_EFI/EFI/Microsoft/Boot/BCD" ]; then
+            log_success "Fișierul BCD este prezent și accesibil pe $part."
+            ls -la "$TMP_EFI/EFI/Microsoft/Boot/BCD"
+        else
+            log_error "CRITIC: Fișierul BCD lipsește sau este corupt pe $part!"
+            log_warn "RedSeek recomandă reconstrucția manuală a BCD-ului."
+        fi
     fi
-    umount "$tmp_efi" && rmdir "$tmp_efi"
+
+    umount "$TMP_EFI" 2>/dev/null || true
 done
+
+if [ "$EFI_FOUND" = false ]; then
+    log_warn "Nu a fost detectată nicio partiție EFI validă cu structură Microsoft."
+fi
