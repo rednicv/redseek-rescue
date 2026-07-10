@@ -6,6 +6,30 @@
 # ⚠️ NO API key embedded in ISO — user provides at first boot
 set -euo pipefail
 
+# --- WSL2 environment check ---
+# live-build needs raw loop device access + chroot with bind mounts.
+# WSL2 runs a real Linux kernel but namespace isolation prevents live-build
+# from mounting loop devices inside its chroot reliably.
+if grep -qEi "(Microsoft|WSL)" /proc/version &>/dev/null; then
+    echo ""
+    echo "======================================"
+    echo "  RedSeek Rescue — BUILD FAILED"
+    echo "======================================"
+    echo ""
+    echo "Rulezi scriptul într-un mediu WSL2."
+    echo ""
+    echo "live-build nu funcționează în WSL2 deoarece namespace-urile"
+    echo "izolate și accesul indirect la /dev/loop* împiedică operațiile"
+    echo "de chroot și mount necesare construirii ISO-ului."
+    echo ""
+    echo "Solutii:"
+    echo "  1. Ruleaza pe Linux nativ (Ubuntu/Debian)"
+    echo "  2. Foloseste o masina virtuala (KVM/QEMU)"
+    echo "  3. Foloseste GitHub Actions (build automat la tag)"
+    echo ""
+    exit 1
+fi
+
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OUTPUT_DIR="${ROOT_DIR}/output"
 ISO_OVERLAY="${ROOT_DIR}/iso-overlay"
