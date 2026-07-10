@@ -124,7 +124,7 @@ fi
 
 # UEFI firmware requires a FAT image via El Torito, not a raw .EFI
 echo "[*] Creating UEFI FAT image (efiboot.img)..."
-dd if=/dev/zero of=/tmp/iso-staging/boot/grub/efiboot.img bs=1M count=4 status=none
+dd if=/dev/zero of=/tmp/iso-staging/boot/grub/efiboot.img bs=1M count=16 status=none
 mformat -i /tmp/iso-staging/boot/grub/efiboot.img -F ::
 mmd -i /tmp/iso-staging/boot/grub/efiboot.img ::/EFI
 mmd -i /tmp/iso-staging/boot/grub/efiboot.img ::/EFI/BOOT
@@ -140,7 +140,7 @@ fi
 # ==========================================
 echo "[*] Building GRUB BIOS..."
 grub-mkimage -O i386-pc -o /tmp/core.img -p "(cd)/boot/grub" \
-  biosdisk iso9660 ext2 fat ntfs part_msdos part_gpt normal linux configfile search ls test eltorito
+  biosdisk iso9660 ext2 fat ntfs part_msdos part_gpt normal linux configfile search ls test
 
 # BIOS boot record requires cdboot.img prepended to core.img
 cat /usr/lib/grub/i386-pc/cdboot.img /tmp/core.img > /tmp/iso-staging/boot/grub/bios.img
