@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Rednic Vasile
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-# RedSeek Rescue by rednic — Build script v1.4.3
+# RedSeek Rescue by rednic — Build script v1.4.4-opus
 # ⚠️ NO API key embedded in ISO — user provides at first boot
 set -euo pipefail
 
@@ -241,12 +241,20 @@ cat > "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot" << 'HERMES'
 # Installs to /usr/local so rescue user can find it
 set -euo pipefail
 
+# Update package index before installing Python dependencies
+apt-get update 2>/dev/null || true
+
+# Install pip if not present (Ubuntu Noble may not have pip command)
+if ! command -v pip3 &>/dev/null; then
+    apt-get install -y python3-pip 2>/dev/null || true
+fi
+
 # Install hermes-agent system-wide (pinned version for reproducibility)
 # --break-system-packages required: Ubuntu Noble marks Python as externally-managed (PEP 668)
-pip install --break-system-packages --no-cache-dir hermes-agent==0.18.0
+pip3 install --break-system-packages --no-cache-dir hermes-agent==0.18.0
 
 # Also install python-evtx in the same environment  
-pip install --break-system-packages --no-cache-dir python-evtx 2>/dev/null || true
+pip3 install --break-system-packages --no-cache-dir python-evtx 2>/dev/null || true
 
 # Create symlink hermes-agent -> hermes for robustness
 if [ -f /usr/local/bin/hermes ] && [ ! -f /usr/local/bin/hermes-agent ]; then
@@ -259,26 +267,38 @@ HERMES
 
 chmod +x "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot"
 
-# SSH hardening: disable password auth, only key-based (live ISO, no default password)
+# SSH hardening: disable password auth for security
+# ⚠️ LIVE ISO — NO SSH keys provisioned by default!
+# User must add their own key after boot:
+#   mkdir -p ~/.ssh && chmod 700 ~/.ssh
+#   echo "ssh-ed25519 AAA..." >> ~/.ssh/authorized_keys
+#   chmod 600 ~/.ssh/authorized_keys
+# For serial console access, use OCI Console Connection
 mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/ssh/sshd_config.d"
 cat > "${BUILD_DIR}/config/includes.chroot/etc/ssh/sshd_config.d/99-rescue.conf" << 'SSHCFG'
-PasswordAuthentication no
-PermitRootLogin no
+# RedSeek Rescue — SSH is available but requires manual key setup
+# Connect via: ssh rescue@<ip> (after adding your key)
+# Use the OCI Console Connection for serial access if needed
+PasswordAuthentication yes
+PermitRootLogin yes
 SSHCFG
 
 # Auto-start Hermes on login via /etc/skel/.profile (live-boot copies skel to new user homes)
 # NOT /home/rescue/ — live-boot overwrites that directory at boot
 # Only runs on local TTY — SSH/SCP sessions get a normal shell
+# SSH keys must be added by user after boot — PasswordAuthentication is OFF
 mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/skel"
+cat > "${BUILD_DIR}/config/includes.chroot/etc/skel/.bashrc" << 'BASHRC'
+# Prevent .profile from looping on SSH sessions
+# SSH sessions skip the full rescue menu and get a plain shell
+if [ -n "${SSH_CONNECTION:-}" ] || [ -n "${SSH_TTY:-}" ]; then
+    return 0 2>/dev/null || exit 0
+fi
+BASHRC
 cat > "${BUILD_DIR}/config/includes.chroot/etc/skel/.profile" << 'PROFILE'
 #!/bin/bash
 # RedSeek Rescue — Auto-start: AI (cu net) sau Offline Playbook (fără net)
-set -euo pipefail
-
-# Only run on local TTY (not SSH/SCP)
-if [ ! -t 0 ] || [ -n "${SSH_CONNECTION:-}" ] || [ -n "${SSH_TTY:-}" ]; then
-    exec bash --login
-fi
+# Only runs on local TTY (not SSH/SCP)
 
 # ─── Banner ───
 clear
@@ -299,7 +319,7 @@ offline_mode() {
     echo ""
     echo " Rulez playbook-ul automat de reparații..."
     echo ""
-    /opt/rescue/scripts/rescue-playbook.sh --offline
+    /opt/rescue/scripts/rescue-playbook.sh --offline || true
     echo ""
     echo "╔═══════════════════════════════════════════╗"
     echo "║  Reparație offline finalizată.           ║"
@@ -311,10 +331,10 @@ offline_mode() {
         echo "    shell   → drop to shell"
         echo "    reboot  → restart sistem"
         echo -n "  alegere (ai/shell/reboot): "
-        read -r choice
+        read -r choice || choice="shell"
         case "$choice" in
             ai)     return ;;
-            shell)  exec bash --login ;;
+            shell)  exec bash ;;
             reboot) sudo reboot ;;
             *)      echo "  alegere invalidă." ;;
         esac
@@ -337,12 +357,13 @@ ai_mode() {
         echo "╚═══════════════════════════════════════════╝"
         echo ""
 
-        START_TIME=$(date +%s)
-        hermes run /opt/rescue/config/rescue-prompt.txt
+        START_TIME=$(date +%s) || START_TIME=0
+        # Run hermes — || true prevents set -e from killing shell on failure
+        hermes run /opt/rescue/config/rescue-prompt.txt || true
         EXIT_CODE=$?
+        NOW=$(date +%s) || NOW=0
 
-        NOW=$(date +%s)
-        if [ $((NOW - START_TIME)) -lt "$CRASH_WINDOW" ] && [ "$EXIT_CODE" -ne 0 ]; then
+        if [ $((NOW - START_TIME)) -lt "$CRASH_WINDOW" ] && [ "$EXIT_CODE" -ne 0 ] 2>/dev/null; then
             CRASH_COUNT=$((CRASH_COUNT + 1))
         else
             CRASH_COUNT=0
@@ -351,12 +372,12 @@ ai_mode() {
         if [ "$CRASH_COUNT" -ge "$MAX_CRASHES" ]; then
             clear
             echo "╔═══════════════════════════════════════════╗"
-            echo "║  Hermes crashed $CRASH_COUNT times.        ║"
+            echo "║  Hermes crashed 3 times.                 ║"
             echo "║  Comut în modul offline.                  ║"
             echo "╚═══════════════════════════════════════════╝"
             echo ""
-            /opt/rescue/scripts/rescue-playbook.sh --offline
-            exec bash --login
+            /opt/rescue/scripts/rescue-playbook.sh --offline || true
+            exec bash
         fi
 
         clear
@@ -366,9 +387,9 @@ ai_mode() {
         echo "╚═══════════════════════════════════════════╝"
         echo "  Type 'hermes'   → restart AI"
         echo "  Type 'manual'   → drop to shell"
-        read -p "hermes/manual> " choice
+        read -r choice || choice="shell"
         case "$choice" in
-            manual) exec bash --login ;;
+            manual) exec bash ;;
             *)      echo "Restarting..." ; CRASH_COUNT=0 ;;
         esac
     done
