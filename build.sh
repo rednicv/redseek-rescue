@@ -251,7 +251,8 @@ fi
 
 # Install hermes-agent system-wide (pinned version for reproducibility)
 # --break-system-packages required: Ubuntu Noble marks Python as externally-managed (PEP 668)
-pip3 install --break-system-packages --no-cache-dir hermes-agent==0.18.0
+# || true — Hermes install failure is non-fatal, ISO boots without it
+pip3 install --break-system-packages --no-cache-dir hermes-agent==0.18.0 || true
 
 # Also install python-evtx in the same environment  
 pip3 install --break-system-packages --no-cache-dir python-evtx 2>/dev/null || true
@@ -276,11 +277,11 @@ chmod +x "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot"
 # For serial console access, use OCI Console Connection
 mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/ssh/sshd_config.d"
 cat > "${BUILD_DIR}/config/includes.chroot/etc/ssh/sshd_config.d/99-rescue.conf" << 'SSHCFG'
-# RedSeek Rescue — SSH is available but requires manual key setup
-# Connect via: ssh rescue@<ip> (after adding your key)
-# Use the OCI Console Connection for serial access if needed
+# RedSeek Rescue — SSH is available with key or password
+# Connect via: ssh rescue@<ip> (live ISO user has no password by default)
+# ⚠️ For production use, set a password or add SSH keys after boot
 PasswordAuthentication yes
-PermitRootLogin yes
+PermitRootLogin prohibit-password
 SSHCFG
 
 # Auto-start Hermes on login via /etc/skel/.profile (live-boot copies skel to new user homes)
@@ -333,7 +334,14 @@ offline_mode() {
         echo -n "  alegere (ai/shell/reboot): "
         read -r choice || choice="shell"
         case "$choice" in
-            ai)     return ;;
+            ai)     # Re-detect network and start AI
+                    if ping -c 1 -W 2 8.8.8.8 &>/dev/null; then
+                        ai_mode
+                    else
+                        echo "  Încă fără rețea. Rămân în offline."
+                        continue
+                    fi
+                    ;;
             shell)  exec bash ;;
             reboot) sudo reboot ;;
             *)      echo "  alegere invalidă." ;;
@@ -358,8 +366,8 @@ ai_mode() {
         echo ""
 
         START_TIME=$(date +%s) || START_TIME=0
-        # Run hermes — || true prevents set -e from killing shell on failure
-        hermes run /opt/rescue/config/rescue-prompt.txt || true
+        # Run hermes (no || true — no set -e in .profile, so EXIT_CODE=$? works)
+        hermes run /opt/rescue/config/rescue-prompt.txt
         EXIT_CODE=$?
         NOW=$(date +%s) || NOW=0
 
