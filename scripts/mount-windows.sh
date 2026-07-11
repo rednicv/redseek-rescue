@@ -12,8 +12,6 @@ source "${SCRIPT_DIR}/utils.sh"
 
 require_root
 
-MOUNT_BASE="/mnt/windows"
-BITLOCKER_DIR="/mnt/bitlocker"
 mkdir -p "$MOUNT_BASE" "$BITLOCKER_DIR"
 
 log_info "Identificare partiții NTFS/BitLocker..."

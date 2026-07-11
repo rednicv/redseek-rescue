@@ -20,22 +20,19 @@ if [ -z "$WIN_PART" ]; then
     exit 1
 fi
 
-VSS_DIR="/mnt/vss"
-VSS_MOUNT="/mnt/shadow_mount"
 mkdir -p "$VSS_DIR" "$VSS_MOUNT"
 
-# Demontare temporară dacă partția e deja montată (vshadowmount cere acces exclusiv)
 WAS_MOUNTED=false
-if mountpoint -q /mnt/windows; then
+if mountpoint -q "$MOUNT_BASE"; then
     log_warn "Partiția $WIN_PART este montată activ. Se demontează temporar pentru acces VSS..."
-    umount /mnt/windows || { log_error "Nu s-a putut elibera lock-ul pe partiție."; exit 1; }
+    umount "$MOUNT_BASE" || { log_error "Nu s-a putut elibera lock-ul pe partiție."; exit 1; }
     WAS_MOUNTED=true
 fi
 
 log_info "Analiză Volume Shadow Copies pe $WIN_PART..."
 if ! vshadowinfo "$WIN_PART" &>/dev/null; then
     log_error "Nu există snapshot-uri VSS disponibile pe această partiție."
-    $WAS_MOUNTED && ntfs-3g "$WIN_PART" /mnt/windows -o remove_hiberfile,ignore_case,windows_names
+    $WAS_MOUNTED && ntfs-3g "$WIN_PART" "$MOUNT_BASE" -o remove_hiberfile,ignore_case,windows_names
     exit 1
 fi
 

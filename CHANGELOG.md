@@ -2,6 +2,29 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.4.15] — 2026-07-11
+
+### Fixed (Security)
+- **🔴 Shell injection in parse-evtx.sh** — `$SYS_EVTX` no longer interpolated into Python code string. Now passed via `sys.argv[1]` with quoted heredoc.
+- **🔴 Shell injection in registry-tools.sh** — `$SYSTEM_HIVE` no longer interpolated into Python code string. Same fix as above.
+- **🔴 Double-escaped bytes in registry-tools.sh** — `b'\\x00\\x00\\x00\\x00'` was double-escaped, producing wrong value. Fixed to `b'\x00\x00\x00\x00'`.
+- **🟠 WiFi password exposure** — `wifi-connect.sh` password was visible in `/proc/*/cmdline`. Now uses `--ask` flag with stdin pipe fallback.
+
+### Fixed (Code Quality)
+- **Centralized constants** — `MOUNT_BASE`, `BITLOCKER_DIR`, `VSS_DIR`, `VSS_MOUNT`, `SNAPSHOT_DIR` now defined once in `utils.sh` instead of hardcoded in 18 scripts.
+- **rescue-playbook.sh** — version no longer hardcoded as `1.5.0`, now reads from `VERSION` file.
+- **make-iso.sh** — staging directory uses `mktemp -d` instead of hardcoded `/tmp/iso-staging` (avoids tmpfs OOM and TOCTOU).
+- **backup-data.sh** — USB mount now requires user confirmation before proceeding.
+
+### Fixed (Documentation)
+- **SECURITY.md** — updated supported versions from `1.0.x` to `1.4.x`.
+- **CHANGELOG.md** — added v1.4.15 entry.
+- **ci.yml** — fixed truncated permissions check job.
+
+### Improved (Tests)
+- **utils.bats** — extended with tests for `find_ci`, `is_readonly`, `check_pipe`.
+- **scripts.bats** — new test file validating syntax and `--help` for all scripts.
+
 ## [1.4.2] — 2026-07-05
 
 ### Fixed (Security)

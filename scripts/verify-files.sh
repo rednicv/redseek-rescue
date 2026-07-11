@@ -10,7 +10,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPT_DIR}/utils.sh"
 
-MOUNT_BASE="/mnt/windows"
 UTILMAN=$(find_ci "$MOUNT_BASE" "Windows/System32/utilman.exe")
 
 if [ -n "$UTILMAN" ] && [ -f "$UTILMAN" ]; then

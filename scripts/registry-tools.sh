@@ -13,19 +13,6 @@ source "${SCRIPT_DIR}/utils.sh"
 require_root
 require_snapshot
 
-FORCE_MODE=false
-if [ "${1:-}" = "--force" ]; then
-    FORCE_MODE=true
-    log_warn "FORȚAT: Se sare peste verificările de siguranță."
-fi
-
-MOUNT_BASE="/mnt/windows"
-SYSTEM_HIVE=$(find_ci "$MOUNT_BASE" "Windows/System32/config/SYSTEM")
-
-if [ -z "$SYSTEM_HIVE" ] || [ ! -f "$SYSTEM_HIVE" ]; then
-    log_error "Fișierul de registru SYSTEM nu a fost găsit."
-    exit 1
-fi
 
 # Verificare tranzacții de registru pendinte (fișiere .LOG)
 # Dacă Windows a crash-uit cu tranzacții neaplicate, hivex scrie în hive-ul
@@ -55,12 +42,12 @@ fi
 
 log_info "Bypass Fast Startup în registrul offline..."
 export FORCE_MODE
-python3 -c "
+python3 - "$SYSTEM_HIVE" <<'PYEOF'
 import os
 import sys
 import hivex
 
-hive_path = '$SYSTEM_HIVE'
+hive_path = sys.argv[1]
 force_mode = os.environ.get('FORCE_MODE', 'false').lower() == 'true'
 
 # --- Verificare tranzacții pendinte (dirty hive) ---
@@ -93,7 +80,10 @@ if control_set:
             power = h.node_get_child(session_mgr, 'Power')
             if power:
                 val = h.node_get_value(power, 'HiberbootEnabled')
-                h.node_set_value(power, {'key': 'HiberbootEnabled', 'type': 4, 'value': b'\\x00\\x00\\x00\\x00'})
+                h.node_set_value(power, {'key': 'HiberbootEnabled', 'type': 4, 'value': b'\x00\x00\x00\x00'})
                 h.commit(None)
                 print('[✓] HiberbootEnabled setat pe 0 offline.')
-" || log_error "Eroare la modificarea hivex."
+PYEOF
+if [ $? -ne 0 ]; then
+    log_error "Eroare la modificarea hivex."
+fi

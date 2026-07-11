@@ -10,8 +10,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPT_DIR}/utils.sh"
 
-MOUNT_BASE="/mnt/windows"
-
 if [ ! -d "$MOUNT_BASE/Windows" ] && [ ! -d "$MOUNT_BASE/windows" ]; then
     log_error "Windows nu este montat corect la $MOUNT_BASE"
     exit 1

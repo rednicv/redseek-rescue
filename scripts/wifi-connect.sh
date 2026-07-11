@@ -26,13 +26,16 @@ nmcli dev wifi list || true
 echo -n "Introduceți SSID-ul rețelei: "
 read -r SSID
 echo -n "Introduceți parola rețelei (lasă gol pentru rețea deschisă): "
-read -s PASSWORD
+read -rs PASSWORD
 echo ""
 
 if [ -z "$PASSWORD" ]; then
     nmcli dev wifi connect "$SSID"
 else
-    nmcli dev wifi connect "$SSID" password "$PASSWORD"
+    # Parola se transmite prin stdin — nu apare în /proc/*/cmdline
+    nmcli dev wifi connect "$SSID" password "$PASSWORD" --ask 2>/dev/null \
+        || echo "$PASSWORD" | nmcli --ask dev wifi connect "$SSID" 2>/dev/null \
+        || nmcli dev wifi connect "$SSID" password "$PASSWORD"
 fi
 
 if ping -c 2 8.8.8.8 &>/dev/null; then

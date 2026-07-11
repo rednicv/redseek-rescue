@@ -6,6 +6,13 @@
 # Funcții helper globale, culori de jurnalizare, validări root
 set -euo pipefail
 
+# ─── Constante globale (centralizate) ───
+MOUNT_BASE="${MOUNT_BASE:-/mnt/windows}"
+BITLOCKER_DIR="${BITLOCKER_DIR:-/mnt/bitlocker}"
+VSS_DIR="${VSS_DIR:-/mnt/vss}"
+VSS_MOUNT="${VSS_MOUNT:-/mnt/shadow_mount}"
+SNAPSHOT_DIR="${SNAPSHOT_DIR:-/tmp/registry_snapshots}"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

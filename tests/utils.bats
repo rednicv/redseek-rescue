@@ -103,3 +103,11 @@ load '../scripts/utils.sh'
     run bash -c 'source scripts/utils.sh; true | false | true; check_pipe'
     [ "$status" -eq 1 ]
 }
+
+# ─── require_snapshot ─────────────────────────────────
+
+@test "require_snapshot eșuează fără sentinel" {
+    run bash -c 'SNAPSHOT_SENTINEL=/tmp/non_existent_sentinel; source scripts/utils.sh; require_snapshot'
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Snapshot necesar"* ]]
+}

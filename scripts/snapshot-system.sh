@@ -10,15 +10,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPT_DIR}/utils.sh"
 
-MOUNT_BASE="/mnt/windows"
-SNAP_DIR="/tmp/registry_snapshots"
-mkdir -p "$SNAP_DIR"
+mkdir -p "$SNAPSHOT_DIR"
 
 CONFIG_PATH=$(find_ci "$MOUNT_BASE" "Windows/System32/config")
 
 if [ -n "$CONFIG_PATH" ] && [ -d "$CONFIG_PATH" ]; then
     log_info "Salvare snapshot registru..."
-    cp -a "$CONFIG_PATH"/* "$SNAP_DIR/"
+    cp -a "$CONFIG_PATH"/* "$SNAPSHOT_DIR/"
     touch "$SNAPSHOT_SENTINEL"
-    log_success "Snapshot salvat în $SNAP_DIR"
+    log_success "Snapshot salvat în $SNAPSHOT_DIR"
 fi

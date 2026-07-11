@@ -12,9 +12,6 @@ source "${SCRIPT_DIR}/utils.sh"
 
 require_root
 
-MOUNT_BASE="/mnt/windows"
-BITLOCKER_DIR="/mnt/bitlocker"
-
 log_info "Se golește cache-ul de scriere (sync)..."
 sync
 

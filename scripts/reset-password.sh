@@ -13,7 +13,6 @@ source "${SCRIPT_DIR}/utils.sh"
 require_root
 require_snapshot
 
-MOUNT_BASE="/mnt/windows"
 SAM_HIVE=$(find_ci "$MOUNT_BASE" "Windows/System32/config/SAM")
 
 if [ -z "$SAM_HIVE" ]; then

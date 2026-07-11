@@ -12,8 +12,6 @@ source "${SCRIPT_DIR}/utils.sh"
 
 require_root
 
-MOUNT_BASE="/mnt/windows"
-
 # --- Verificare RO-Aware (previne crash set -e pe mount read-only) ---
 if ! touch "$MOUNT_BASE/.ro_write_test" 2>/dev/null; then
     log_error "EROARE: Partiția Windows este montată în mod Read-Only!"

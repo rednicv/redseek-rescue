@@ -12,7 +12,6 @@ source "${SCRIPT_DIR}/utils.sh"
 
 require_root
 
-MOUNT_BASE="/mnt/windows"
 REAL_SYSTEM32=$(find_ci "$MOUNT_BASE" "Windows/System32")
 
 if [ -z "$REAL_SYSTEM32" ]; then

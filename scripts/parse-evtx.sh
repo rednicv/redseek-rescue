@@ -10,7 +10,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPT_DIR}/utils.sh"
 
-MOUNT_BASE="/mnt/windows"
 SYSTEM_LOGS=$(find_ci "$MOUNT_BASE" "Windows/System32/winevt/Logs")
 
 if [ -z "$SYSTEM_LOGS" ] || [ ! -d "$SYSTEM_LOGS" ]; then
@@ -25,16 +24,20 @@ log_info "Se extrag evenimentele critice de sistem (System.evtx)..."
 SYS_EVTX="${SYSTEM_LOGS}/System.evtx"
 
 if [ -f "$SYS_EVTX" ]; then
-    python3 -c "
-import evtx
-with evtx.Evtx('$SYS_EVTX') as log:
+    python3 - "$SYS_EVTX" "${OUT_DIR}/system_critical.xml" <<'PYEOF'
+import sys, evtx
+evtx_path = sys.argv[1]
+out_path = sys.argv[2]
+with evtx.Evtx(evtx_path) as log:
     count = 0
-    for record in log.records():
-        node = record.lxml()
-        if 'EventID' in (node.text or '') or count < 50:
-            print(record.xml())
-        count += 1
-" > "${OUT_DIR}/system_critical.xml" 2>/dev/null || true
+    with open(out_path, 'w') as out:
+        for record in log.records():
+            node = record.lxml()
+            if 'EventID' in (node.text or '') or count < 50:
+                out.write(record.xml() + '\n')
+            count += 1
+PYEOF
+    true  # nu crapăm dacă parsarea eșuează
     log_success "Loguri salvate în ${OUT_DIR}/system_critical.xml"
 else
     log_error "System.evtx lipsă."

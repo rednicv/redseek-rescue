@@ -18,7 +18,6 @@ if [ $# -lt 1 ]; then
 fi
 
 USERNAME="$1"
-MOUNT_BASE="/mnt/windows"
 SAM_HIVE=$(find_ci "$MOUNT_BASE" "Windows/System32/config/SAM")
 
 if [ -z "$SAM_HIVE" ]; then

@@ -43,8 +43,8 @@ jobs:
       - name: Run bats tests (if they exist)
         run: |
           if [ -d tests/ ] && ls tests/*.bats 2>/dev/null; then
-            apt-get update -qq && apt-get install -y -qq bats 2>/dev/null
-            bats tests/ || true
+            sudo apt-get update -qq && sudo apt-get install -y -qq bats 2>/dev/null
+            bats tests/
           else
             echo "No bats tests found — skipping"
           fi

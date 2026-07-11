@@ -37,7 +37,9 @@ The RedSeek Rescue ISO includes:
 
 | Version | Status |
 |---|---|
-| 1.0.x   | ✅ Supported |
+| 1.4.x   | ✅ Supported |
+| 1.3.x   | ⚠️ Security fixes only |
+| < 1.3   | ❌ End of life |
 
 ---
 

@@ -12,8 +12,6 @@ source "${SCRIPT_DIR}/utils.sh"
 
 require_root
 
-MOUNT_BASE="/mnt/windows"
-
 log_info "Se pornește actualizarea bazei de date malware ClamAV..."
 freshclam || log_warn "Nu s-a putut face update la semnături (fără net)."
 

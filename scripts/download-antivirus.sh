@@ -12,7 +12,6 @@ source "${SCRIPT_DIR}/utils.sh"
 
 require_root
 
-MOUNT_BASE="/mnt/windows"
 AV_TARGET_DIR="${MOUNT_BASE}/RedSeek_AV"
 
 # Verificare conexiune internet (previne crash set -e pe curl offline)

@@ -16,6 +16,8 @@ if [ "${1:-}" = "--offline" ]; then
     OFFLINE_MODE=true
 fi
 
+RESCUE_VERSION=$(head -1 "${SCRIPT_DIR}/../VERSION" 2>/dev/null || echo "unknown")
+
 REPORT_FILE="/tmp/redseek_offline_report.json"
 RESULTS=""
 
@@ -61,7 +63,7 @@ if $OFFLINE_MODE; then
     cat > "$REPORT_FILE" << JSONEOF
 {
     "tool": "RedSeek Rescue",
-    "version": "1.5.0",
+    "version": "${RESCUE_VERSION}",
     "mode": "offline",
     "timestamp": "$(date -Iseconds)",
     "results": $(echo -e "$RESULTS" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo '"completat"')

@@ -2,7 +2,7 @@
   <img src="assets/banner.svg" alt="RedSeek Rescue Banner" width="100%">
 </p>
 
-# RedSeek Rescue [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](/LICENSE) [![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](https://github.com/rednicv/redseek-rescue/releases) [![CI](https://github.com/rednicv/redseek-rescue/actions/workflows/ci.yml/badge.svg)](https://github.com/rednicv/redseek-rescue/actions/workflows/ci.yml) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+# RedSeek Rescue [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](/LICENSE) [![Version](https://img.shields.io/badge/version-1.4.15-blue.svg)](https://github.com/rednicv/redseek-rescue/releases) [![CI](https://github.com/rednicv/redseek-rescue/actions/workflows/ci.yml/badge.svg)](https://github.com/rednicv/redseek-rescue/actions/workflows/ci.yml) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 **AI-powered bootable USB for Windows system repair.**
 
