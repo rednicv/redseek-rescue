@@ -102,6 +102,9 @@ echo ""
 # Create our package list (removed firmware-b43-installer — not in Ubuntu Noble)
 cat > config/package-lists/deepseekrescue.list.chroot << 'PKGLIST'
 # Core
+live-boot
+live-config
+live-config-systemd
 openssh-server
 curl
 wget
@@ -205,6 +208,14 @@ cp -r "${SCRIPTS_DIR}/." "${BUILD_DIR}/config/includes.chroot/opt/rescue/scripts
 cp -r "${CONFIG_DIR}/." "${BUILD_DIR}/config/includes.chroot/opt/rescue/config/"
 cp -r "${ISO_OVERLAY}/"* "${BUILD_DIR}/config/includes.chroot/" 2>/dev/null || true
 
+# Getty TTY1 autologin override
+mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/systemd/system/getty@tty1.service.d"
+cat > "${BUILD_DIR}/config/includes.chroot/etc/systemd/system/getty@tty1.service.d/override.conf" << 'GETTY_OVERRIDE'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin rescue --noclear %I $TERM
+GETTY_OVERRIDE
+
 # Fix dpkg start-stop-daemon PATH issue in chroot (Ubuntu Noble)
 # dpkg needs start-stop-daemon in PATH — create wrapper in /usr/bin
 mkdir -p "${BUILD_DIR}/config/includes.chroot/usr/bin" "${BUILD_DIR}/config/includes.chroot/usr/sbin"
@@ -240,6 +251,9 @@ cat > "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot" << 'HERMES'
 # Installs Hermes Agent into the ISO — runs inside chroot during build
 # Installs to /usr/local so rescue user can find it
 set -euo pipefail
+
+# Set default password for rescue user
+echo 'rescue:rescue' | chpasswd
 
 # Update package index before installing Python dependencies
 apt-get update 2>/dev/null || true
