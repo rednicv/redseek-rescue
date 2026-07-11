@@ -73,17 +73,17 @@ set timeout=10
 set default=0
 
 menuentry "RedSeek Rescue (Live)" {
-  linux /casper/vmlinuz boot=casper live-media-path=/casper quiet splash ---
+  linux /casper/vmlinuz boot=casper live-media-path=/casper username=rescue user-fullname=Rescue locales=ro_RO.UTF-8 keyboard-layouts=ro quiet splash ---
   initrd /casper/initrd.img
 }
 
 menuentry "RedSeek Rescue (Debug)" {
-  linux /casper/vmlinuz boot=casper live-media-path=/casper ---
+  linux /casper/vmlinuz boot=casper live-media-path=/casper username=rescue user-fullname=Rescue locales=ro_RO.UTF-8 keyboard-layouts=ro ---
   initrd /casper/initrd.img
 }
 
 menuentry "RedSeek Rescue (Safe Graphics)" {
-  linux /casper/vmlinuz boot=casper live-media-path=/casper nomodeset quiet splash ---
+  linux /casper/vmlinuz boot=casper live-media-path=/casper username=rescue user-fullname=Rescue locales=ro_RO.UTF-8 keyboard-layouts=ro nomodeset quiet splash ---
   initrd /casper/initrd.img
 }
 GRUBEOF
@@ -97,7 +97,7 @@ GRUB_EFI="$STAGING_DIR/EFI/BOOT/grubx64.efi"
 grub-mkstandalone -O x86_64-efi -o "$GRUB_EFI" \
   "boot/grub/grub.cfg=$STAGING_DIR/boot/grub/grub.cfg"
 
-# Secure Boot support: sign GRUB with MOK, use shim as bootloader
+# Secure Boot support: sign GRUB with MOK, use shim as bootloade
 SECURE_BOOT=false
 if command -v sbsign &>/dev/null && [ -f /usr/lib/shim/shimx64.efi.signed ]; then
     echo "[*] Secure Boot detected — signing GRUB..."
@@ -136,7 +136,7 @@ if $SECURE_BOOT; then
 fi
 
 # ==========================================
-# 2. Build GRUB BIOS with El Torito boot sector
+# 2. Build GRUB BIOS with El Torito boot secto
 # ==========================================
 echo "[*] Building GRUB BIOS..."
 grub-mkimage -O i386-pc -o /tmp/core.img -p "(cd)/boot/grub" \
