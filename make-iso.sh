@@ -88,6 +88,33 @@ menuentry "RedSeek Rescue (Safe Graphics)" {
 }
 GRUBEOF
 
+# ─── Auto-login as rescue on TTY1 ───
+mkdir -p "$STAGING_DIR"/etc/systemd/system/getty@tty1.service.d
+cat > "$STAGING_DIR"/etc/systemd/system/getty@tty1.service.d/autologin.conf << 'GETTYEOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty -o "-p -f rescue" --noclear --autologin rescue --keep-baud tty1 115200,38400,9600 $TERM
+GETTYEOF
+
+# ─── Set password "rescue" for user rescue at boot ───
+mkdir -p "$STAGING_DIR"/etc/systemd/system/sysinit.target.wants
+cat > "$STAGING_DIR"/etc/systemd/system/set-rescue-password.service << 'SERVICEOF'
+[Unit]
+Description=Set rescue user password
+Before=getty@tty1.service
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo "rescue:rescue" | chpasswd'
+ExecStartPost=/bin/systemctl disable set-rescue-password.service
+RemainAfterExit=no
+
+[Install]
+WantedBy=sysinit.target
+SERVICEOF
+ln -sf /etc/systemd/system/set-rescue-password.service "$STAGING_DIR"/etc/systemd/system/sysinit.target.wants/
+
 # ==========================================
 # 1. Build GRUB EFI & FAT Image for UEFI
 # ==========================================
