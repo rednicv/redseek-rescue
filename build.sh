@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Rednic Vasile
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-# RedSeek Rescue by rednic — Build script v1.4.4-opus
+# RedSeek Rescue by rednic — Build script v1.4.14
 # ⚠️ NO API key embedded in ISO — user provides at first boot
 set -euo pipefail
 
