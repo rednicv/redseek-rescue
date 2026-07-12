@@ -208,6 +208,38 @@ cp -r "${SCRIPTS_DIR}/." "${BUILD_DIR}/config/includes.chroot/opt/rescue/scripts
 cp -r "${CONFIG_DIR}/." "${BUILD_DIR}/config/includes.chroot/opt/rescue/config/"
 cp -r "${ISO_OVERLAY}/"* "${BUILD_DIR}/config/includes.chroot/" 2>/dev/null || true
 
+# ─── Local Offline AI Model (Qwen 2.5 1.5B) & llama-server ───
+CACHE_DIR="${ROOT_DIR}/cache"
+MODEL_URL="https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+LLAMA_URL="https://github.com/ggerganov/llama.cpp/releases/download/b3430/llama-b3430-bin-ubuntu-x64.zip"
+
+# Download model to workspace cache
+mkdir -p "${CACHE_DIR}/models"
+if [ ! -f "${CACHE_DIR}/models/qwen2.5-1.5b.gguf" ]; then
+    echo "[i] Descărcare model local Qwen 2.5..."
+    curl -L -o "${CACHE_DIR}/models/qwen2.5-1.5b.gguf" "${MODEL_URL}" || true
+fi
+
+# Download llama.cpp binary to workspace cache
+mkdir -p "${CACHE_DIR}/bin"
+if [ ! -f "${CACHE_DIR}/bin/llama-server" ]; then
+    echo "[i] Descărcare motor llama-server..."
+    curl -L -o "${CACHE_DIR}/bin/llama-bin.zip" "${LLAMA_URL}" || true
+    unzip -o -j "${CACHE_DIR}/bin/llama-bin.zip" "*llama-server" -d "${CACHE_DIR}/bin/" || true
+    chmod +x "${CACHE_DIR}/bin/llama-server" || true
+fi
+
+# Copy assets to chroot overlay
+if [ -f "${CACHE_DIR}/models/qwen2.5-1.5b.gguf" ]; then
+    mkdir -p "${BUILD_DIR}/config/includes.chroot/opt/rescue/models"
+    cp "${CACHE_DIR}/models/qwen2.5-1.5b.gguf" "${BUILD_DIR}/config/includes.chroot/opt/rescue/models/local-model.gguf"
+fi
+if [ -f "${CACHE_DIR}/bin/llama-server" ]; then
+    mkdir -p "${BUILD_DIR}/config/includes.chroot/usr/local/bin"
+    cp "${CACHE_DIR}/bin/llama-server" "${BUILD_DIR}/config/includes.chroot/usr/local/bin/llama-server"
+fi
+
+
 # Getty TTY1 autologin override
 mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/systemd/system/getty@tty1.service.d"
 cat > "${BUILD_DIR}/config/includes.chroot/etc/systemd/system/getty@tty1.service.d/override.conf" << 'GETTY_OVERRIDE'
@@ -339,35 +371,70 @@ fi
 offline_mode() {
     echo "⚠️  Fără conexiune la internet — mod OFFLINE"
     echo ""
-    echo " Rulez playbook-ul automat de reparații..."
-    echo ""
-    sudo /opt/rescue/scripts/rescue-playbook.sh --offline || true
-    echo ""
-    echo "╔═══════════════════════════════════════════╗"
-    echo "║  Reparație offline finalizată.           ║"
-    echo "╚═══════════════════════════════════════════╝"
-    echo ""
-    while true; do
-        echo "  Opțiuni:"
-        echo "    ai      → reîncearcă cu Hermes AI"
-        echo "    shell   → drop to shell"
-        echo "    reboot  → restart sistem"
-        echo -n "  alegere (ai/shell/reboot): "
-        read -r choice || choice="shell"
-        case "$choice" in
-            ai)     # Re-detect network and start AI
-                    if ping -c 1 -W 2 8.8.8.8 &>/dev/null; then
-                        ai_mode
-                    else
-                        echo "  Încă fără rețea. Rămân în offline."
-                        continue
-                    fi
-                    ;;
-            shell)  exec bash ;;
-            reboot) sudo reboot ;;
-            *)      echo "  alegere invalidă." ;;
+    if [ -f "/opt/rescue/models/local-model.gguf" ] && [ -f "/usr/local/bin/llama-server" ]; then
+        echo "  [1] Pornire asistent AI local (Qwen 2.5 1.5B) - complet offline"
+        echo "  [2] Rulare playbook reparații automat (fără asistent AI)"
+        echo "  [3] Drop to Shell"
+        echo -n "  alegere (1/2/3): "
+        read -r off_choice
+        case "$off_choice" in
+            1)  local_ai_mode ;;
+            2)  sudo /opt/rescue/scripts/rescue-playbook.sh --offline || true ;;
+            3)  exec bash ;;
+            *)  offline_mode ;;
         esac
+    else
+        echo " Rulez playbook-ul automat de reparații..."
+        echo ""
+        sudo /opt/rescue/scripts/rescue-playbook.sh --offline || true
+        echo ""
+        echo "╔═══════════════════════════════════════════╗"
+        echo "║  Reparație offline finalizată.           ║"
+        echo "╚═══════════════════════════════════════════╝"
+        echo ""
+        while true; do
+            echo "  Opțiuni:"
+            echo "    ai      → reîncearcă cu Hermes AI"
+            echo "    shell   → drop to shell"
+            echo "    reboot  → restart sistem"
+            echo -n "  alegere (ai/shell/reboot): "
+            read -r choice || choice="shell"
+            case "$choice" in
+                ai)     # Re-detect network and start AI
+                        if ping -c 1 -W 2 8.8.8.8 &>/dev/null; then
+                            ai_mode
+                        else
+                            echo "  Încă fără rețea. Rămân în offline."
+                            continue
+                        fi
+                        ;;
+                shell)  exec bash ;;
+                reboot) sudo reboot ;;
+                *)      echo "  alegere invalidă." ;;
+            esac
+        done
+    fi
+}
+
+local_ai_mode() {
+    echo " Pornesc motorul AI local (llama-server)..."
+    sudo killall llama-server 2>/dev/null || true
+    # Run llama-server in the background on CPU (4 threads)
+    sudo llama-server -m /opt/rescue/models/local-model.gguf -c 2048 --port 8080 --host 127.0.0.1 -t 4 >/dev/null 2>&1 &
+    
+    # Wait for server startup (max 15s)
+    for i in $(seq 1 15); do
+        if curl -s http://127.0.0.1:8080/health | grep -q "ok"; then
+            break
+        fi
+        sleep 1
     done
+
+    echo " Pornesc asistentul AI Hermes (Conexiune Locală)..."
+    echo ""
+    
+    # Run Hermes pointing to the local API
+    sudo hermes -z /opt/rescue/config/rescue-prompt.txt --provider custom --model local-model chat
 }
 
 ai_mode() {

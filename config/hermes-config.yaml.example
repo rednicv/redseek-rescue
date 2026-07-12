@@ -16,6 +16,9 @@ tools:
 providers:
   deepseek:
     api_key: "DEEPSEEK_API_KEY_HERE"
+  custom:
+    api_key: "local"
+    base_url: "http://127.0.0.1:8080/v1"
 
 models:
   deepseek:
@@ -25,3 +28,6 @@ models:
       provider: deepseek
     deepseek-r1:
       provider: deepseek
+  custom:
+    local-model:
+      provider: custom
