@@ -263,7 +263,7 @@ fi
 # Install hermes-agent system-wide (pinned version for reproducibility)
 # --break-system-packages required: Ubuntu Noble marks Python as externally-managed (PEP 668)
 # || true — Hermes install failure is non-fatal, ISO boots without it
-pip3 install --break-system-packages --no-cache-dir hermes-agent==0.18.0 || true
+pip3 install --break-system-packages --ignore-installed --no-cache-dir hermes-agent==0.18.0 || true
 
 # Also install python-evtx in the same environment  
 pip3 install --break-system-packages --no-cache-dir python-evtx 2>/dev/null || true
@@ -312,6 +312,13 @@ cat > "${BUILD_DIR}/config/includes.chroot/etc/skel/.profile" << 'PROFILE'
 # RedSeek Rescue — Auto-start: AI (cu net) sau Offline Playbook (fără net)
 # Only runs on local TTY (not SSH/SCP)
 
+# ─── Automatic Network & DNS Configuration ───
+for iface in $(ip -o link show | awk -F': ' '{print $2}' | grep -v lo); do
+    sudo ip link set "$iface" up 2>/dev/null || true
+    sudo dhcpcd "$iface" 2>/dev/null || true
+done
+echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf >/dev/null
+
 # Protecție: previne închiderea terminalului/bucle de login la erori
 trap 'echo ""; echo "⚠️ Eroare neașteptată în asistent. Intri în shell-ul de salvare..."; exec bash' ERR
 
@@ -334,7 +341,7 @@ offline_mode() {
     echo ""
     echo " Rulez playbook-ul automat de reparații..."
     echo ""
-    /opt/rescue/scripts/rescue-playbook.sh --offline || true
+    sudo /opt/rescue/scripts/rescue-playbook.sh --offline || true
     echo ""
     echo "╔═══════════════════════════════════════════╗"
     echo "║  Reparație offline finalizată.           ║"
@@ -381,7 +388,7 @@ ai_mode() {
 
         START_TIME=$(date +%s) || START_TIME=0
         # Run hermes (no || true — no set -e in .profile, so EXIT_CODE=$? works)
-        hermes run /opt/rescue/config/rescue-prompt.txt
+        sudo hermes -z /opt/rescue/config/rescue-prompt.txt chat
         EXIT_CODE=$?
         NOW=$(date +%s) || NOW=0
 
