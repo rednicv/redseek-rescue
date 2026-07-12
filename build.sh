@@ -372,6 +372,17 @@ offline_mode() {
 
 ai_mode() {
     echo " Conexiune la internet detectată."
+    echo ""
+    if [ -z "${DEEPSEEK_API_KEY:-}" ]; then
+        echo -n "🔑 Introduceți cheia API DeepSeek (sau apăsați Enter pentru modul Offline): "
+        read -r DEEPSEEK_API_KEY
+        echo ""
+        if [ -z "${DEEPSEEK_API_KEY:-}" ]; then
+            offline_mode
+            return 0
+        fi
+        export DEEPSEEK_API_KEY
+    fi
     echo " Pornesc asistentul AI Hermes..."
     echo ""
     CRASH_COUNT=0
@@ -388,7 +399,7 @@ ai_mode() {
 
         START_TIME=$(date +%s) || START_TIME=0
         # Run hermes (no || true — no set -e in .profile, so EXIT_CODE=$? works)
-        sudo hermes -z /opt/rescue/config/rescue-prompt.txt chat
+        sudo DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY" hermes -z /opt/rescue/config/rescue-prompt.txt chat
         EXIT_CODE=$?
         NOW=$(date +%s) || NOW=0
 
