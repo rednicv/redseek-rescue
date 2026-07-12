@@ -1,0 +1,4 @@
+# Force Unix line endings for shell scripts and bats tests
+*.sh text eol=lf
+*.bats text eol=lf
+VERSION text eol=lf

@@ -2,6 +2,16 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.4.17] — 2026-07-12
+
+### Fixed (Critical Boot Hangs & Crashes)
+- **🔴 rescue-playbook.sh** — run scripts directly instead of using `$()`. Fixes boot freeze by letting the user interact with the hidden BitLocker decryption prompt.
+- **🔴 registry-tools.sh** — defined `$SYSTEM_HIVE` (via `find_ci`) and `$FORCE_MODE` to fix crash on unbound variables under `set -u`.
+- **🔴 build.sh (.profile)** — added `trap ERR` to drop safely to a recovery shell if any boot script crashes, preventing infinite getty login loops.
+- **🟠 auto-diagnose.sh** — refactored to source `utils.sh`, check root, read version dynamically, and handle failures cleanly.
+- **🟠 rescue-gui.sh** — added DISPLAY/WAYLAND_DISPLAY graphical check to prevent Zenity from crashing on minimal text-only consoles.
+- **🟡 .gitattributes** — added to force `eol=lf` line endings on all `.sh` and `.bats` files, preventing Windows CRLF translation errors on boot.
+
 ## [1.4.15] — 2026-07-11
 
 ### Fixed (Security)

@@ -13,6 +13,17 @@ source "${SCRIPT_DIR}/utils.sh"
 require_root
 require_snapshot
 
+FORCE_MODE=false
+if [ "${1:-}" = "--force" ]; then
+    FORCE_MODE=true
+fi
+
+SYSTEM_HIVE=$(find_ci "$MOUNT_BASE" "Windows/System32/config/SYSTEM")
+if [ -z "$SYSTEM_HIVE" ]; then
+    log_error "Fișierul de registry SYSTEM nu a fost găsit."
+    exit 1
+fi
+
 
 # Verificare tranzacții de registru pendinte (fișiere .LOG)
 # Dacă Windows a crash-uit cu tranzacții neaplicate, hivex scrie în hive-ul

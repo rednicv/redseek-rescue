@@ -25,6 +25,14 @@ if [ -z "$SAM_HIVE" ]; then
     exit 1
 fi
 
-log_info "Activez contul: ${USERNAME}..."
-chntpw -e "$USERNAME" "$SAM_HIVE" 2>&1
-log_success "Operațiune finalizată."
+log_info "Pornesc chntpw pentru contul: ${USERNAME}..."
+set +e
+chntpw -u "$USERNAME" "$SAM_HIVE"
+STATUS=$?
+set -e
+
+if [ $STATUS -eq 0 ]; then
+    log_success "Operațiune finalizată cu succes."
+else
+    log_warn "Operațiunea a fost anulată sau a generat o eroare."
+fi

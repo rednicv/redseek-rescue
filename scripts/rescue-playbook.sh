@@ -29,7 +29,7 @@ run_step() {
 
     log_info "▶ $name..."
     set +e
-    output=$("${SCRIPT_DIR}/${script}" "$@" 2>&1)
+    "${SCRIPT_DIR}/${script}" "$@"
     local rc=$?
     set -e
 
@@ -40,8 +40,6 @@ run_step() {
         log_warn "$name — atenție (cod $rc)"
         RESULTS="${RESULTS}\n  ⚠️  $name — exit $rc"
     fi
-
-    echo "$output"
 }
 
 if $OFFLINE_MODE; then

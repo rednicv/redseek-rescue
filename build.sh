@@ -102,6 +102,9 @@ echo ""
 # Create our package list (removed firmware-b43-installer — not in Ubuntu Noble)
 cat > config/package-lists/deepseekrescue.list.chroot << 'PKGLIST'
 # Core
+live-boot
+live-config
+live-config-systemd
 openssh-server
 curl
 wget
@@ -205,6 +208,14 @@ cp -r "${SCRIPTS_DIR}/." "${BUILD_DIR}/config/includes.chroot/opt/rescue/scripts
 cp -r "${CONFIG_DIR}/." "${BUILD_DIR}/config/includes.chroot/opt/rescue/config/"
 cp -r "${ISO_OVERLAY}/"* "${BUILD_DIR}/config/includes.chroot/" 2>/dev/null || true
 
+# Getty TTY1 autologin override
+mkdir -p "${BUILD_DIR}/config/includes.chroot/etc/systemd/system/getty@tty1.service.d"
+cat > "${BUILD_DIR}/config/includes.chroot/etc/systemd/system/getty@tty1.service.d/override.conf" << 'GETTY_OVERRIDE'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin rescue --noclear %I $TERM
+GETTY_OVERRIDE
+
 # Fix dpkg start-stop-daemon PATH issue in chroot (Ubuntu Noble)
 # dpkg needs start-stop-daemon in PATH — create wrapper in /usr/bin
 mkdir -p "${BUILD_DIR}/config/includes.chroot/usr/bin" "${BUILD_DIR}/config/includes.chroot/usr/sbin"
@@ -300,6 +311,9 @@ cat > "${BUILD_DIR}/config/includes.chroot/etc/skel/.profile" << 'PROFILE'
 #!/bin/bash
 # RedSeek Rescue — Auto-start: AI (cu net) sau Offline Playbook (fără net)
 # Only runs on local TTY (not SSH/SCP)
+
+# Protecție: previne închiderea terminalului/bucle de login la erori
+trap 'echo ""; echo "⚠️ Eroare neașteptată în asistent. Intri în shell-ul de salvare..."; exec bash' ERR
 
 # ─── Banner ───
 clear

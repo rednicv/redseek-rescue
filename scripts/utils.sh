@@ -75,7 +75,7 @@ find_ci() {
         match=$(find "$current" -maxdepth 1 -iname "$part" -print -quit 2>/dev/null || true)
         if [ -z "$match" ]; then
             echo ""
-            return 1
+            return 0
         fi
         current="$match"
     done

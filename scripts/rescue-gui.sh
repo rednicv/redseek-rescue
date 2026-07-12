@@ -15,6 +15,11 @@ if ! command -v zenity &>/dev/null; then
     exit 1
 fi
 
+if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    log_error "Zenity necesită un server grafic activ (X11 sau Wayland)."
+    exit 1
+fi
+
 while true; do
     CHOICE=$(zenity --list --title="RedSeek Rescue AI Dashboard" \
         --column="Opțiune" --column="Descriere" \
