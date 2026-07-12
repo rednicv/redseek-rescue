@@ -2,6 +2,12 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.4.18] — 2026-07-12
+
+### Added
+- **Password credentials** — configured `rescue:rescue` user credentials in live-build chroot hooks and systemd services for secure local/SSH access.
+- **Line Ending fixes** — synchronized Git and workspaces to enforce Unix LF endings across all boot scripts.
+
 ## [1.4.17] — 2026-07-12
 
 ### Fixed (Critical Boot Hangs & Crashes)
