@@ -180,7 +180,6 @@ grub-efi-amd64-bin
 grub-efi-amd64
 shim-signed
 efibootmgr
-syslinux-utils
 
 # Python / Hermes
 python3
