@@ -19,4 +19,9 @@ done
 log_info "=== VERIFICARE MEMORIE ȘI PROCESOR ==="
 free -m
 uptime
-stress-ng --cpu 2 --timeout 5s --metrics || true
+if ! systemd-detect-virt --quiet; then
+    stress-ng --cpu 2 --timeout 5s --metrics || true
+else
+    log_info "Virtualizare detectată — se omite stress-ng pentru a preveni blocarea kernelului."
+fi
+
