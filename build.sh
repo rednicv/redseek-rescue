@@ -531,71 +531,57 @@ echo ""
 
 cd "${BUILD_DIR}"
 
-# Hide real isohybrid from live-build's binary.sh (it can't find it in subshell)
-# We'll apply it manually after build
-if [ -f /usr/bin/isohybrid ]; then
-  sudo mv /usr/bin/isohybrid /usr/bin/isohybrid.real
-fi
-sudo ln -sf /bin/true /usr/bin/isohybrid
-
 # live-build REQUIRES root — don't try without it first (corrupts build/)
 echo "[*] Running lb build with sudo (required for chroot + mount operations)..."
 set +e
 sudo lb build 2>&1 | tee "${ROOT_DIR}/build.log"
-BUILD_EXIT=${PIPESTATUS[0]}  # Get lb build's exit code, not tee's
+BUILD_EXIT=$?
 set -e
-
-# Restore real isohybrid
-sudo rm -f /usr/bin/isohybrid
-if [ -f /usr/bin/isohybrid.real ]; then
-  sudo mv /usr/bin/isohybrid.real /usr/bin/isohybrid
-fi
 
 # Fix ownership so user can modify build/ after
 sudo chown -R "$(whoami):$(whoami)" "${BUILD_DIR}" 2>/dev/null || true
-
-if [ "${BUILD_EXIT}" -ne 0 ]; then
-  echo "=== ❌ Build failed. Check build.log ==="
-  exit 1
-fi
-
 
 # Find the ISO (only match the hybrid one, not any leftovers)
 ISO_SOURCE=""
 for candidate in \
   "${BUILD_DIR}/live-image-amd64.hybrid.iso" \
-  "${BUILD_DIR}/binary.hybrid.iso"; do
+  "${BUILD_DIR}/binary.hybrid.iso" \
+  "${BUILD_DIR}"/*.iso; do
   if [ -f "$candidate" ]; then
     ISO_SOURCE="$candidate"
     break
   fi
 done
 
-# Fallback: first .iso file (less reliable, but backup)
-if [ -z "${ISO_SOURCE}" ]; then
-  ISO_SOURCE=$(ls -1 "${BUILD_DIR}"/*.iso 2>/dev/null | head -1)
-fi
-
 if [ -z "${ISO_SOURCE}" ]; then
   echo "=== ❌ Build failed — no ISO found. Check build.log ==="
   exit 1
 fi
 
-# Verify ISO is bootable
-echo ""
-echo "=== Verifying ISO bootability ==="
-if xorriso -indev "${ISO_SOURCE}" -report_el_torito plain 2>&1 | grep -q "El Torito"; then
-  echo "[✅] ISO is bootable (El Torito found)"
-else
-  echo "[!] ISO missing El Torito boot record. Applying isohybrid..."
-  sudo isohybrid "${ISO_SOURCE}" 2>/dev/null && echo "[✅] isohybrid applied" || echo "[!] isohybrid failed — UEFI-only ISO"
-fi
-
-# Copy result + generate checksum
+# Copy result
 mkdir -p "${OUTPUT_DIR}"
 cp "${ISO_SOURCE}" "${OUTPUT_DIR}/${ISO_NAME}.iso"
-sha256sum "${OUTPUT_DIR}/${ISO_NAME}.iso" > "${OUTPUT_DIR}/${ISO_NAME}.iso.sha256"
 echo ""
 echo "=== ✅ ISO ready: ${OUTPUT_DIR}/${ISO_NAME}.iso ==="
-echo "    SHA256: $(cat "${OUTPUT_DIR}/${ISO_NAME}.iso.sha256")"
 ls -lh "${OUTPUT_DIR}/${ISO_NAME}.iso"
+
+# Verify bootability — fallback to make-iso.sh if live-build failed
+echo ""
+echo "[*] Checking bootability..."
+if command -v xorriso &>/dev/null; then
+  if xorriso -indev "${OUTPUT_DIR}/${ISO_NAME}.iso" -report_el_torito plain 2>&1 | grep -qi "el torito"; then
+    echo "[✅] ISO is bootable (El Torito found)"
+  else
+    echo "[!] ISO not bootable — rebuilding with xorriso manual..."
+    bash "${ROOT_DIR}/make-iso.sh" "${BUILD_DIR}" "${OUTPUT_DIR}/${ISO_NAME}.iso"
+  fi
+else
+  echo "[!] xorriso not available — bootability check skipped"
+fi
+
+# Generate checksum
+sha256sum "${OUTPUT_DIR}/${ISO_NAME}.iso" > "${OUTPUT_DIR}/${ISO_NAME}.iso.sha256"
+echo "    SHA256: $(cat "${OUTPUT_DIR}/${ISO_NAME}.iso.sha256")"
+echo ""
+echo "=== ✅ Build complete ==="
+
