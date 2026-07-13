@@ -531,12 +531,25 @@ echo ""
 
 cd "${BUILD_DIR}"
 
+# Hide real isohybrid from live-build's binary.sh (it can't find it in subshell)
+# We'll apply it manually after build
+if [ -f /usr/bin/isohybrid ]; then
+  sudo mv /usr/bin/isohybrid /usr/bin/isohybrid.real
+fi
+sudo ln -sf /bin/true /usr/bin/isohybrid
+
 # live-build REQUIRES root — don't try without it first (corrupts build/)
 echo "[*] Running lb build with sudo (required for chroot + mount operations)..."
 set +e
 sudo lb build 2>&1 | tee "${ROOT_DIR}/build.log"
 BUILD_EXIT=${PIPESTATUS[0]}  # Get lb build's exit code, not tee's
 set -e
+
+# Restore real isohybrid
+sudo rm -f /usr/bin/isohybrid
+if [ -f /usr/bin/isohybrid.real ]; then
+  sudo mv /usr/bin/isohybrid.real /usr/bin/isohybrid
+fi
 
 # Fix ownership so user can modify build/ after
 sudo chown -R "$(whoami):$(whoami)" "${BUILD_DIR}" 2>/dev/null || true
@@ -545,6 +558,7 @@ if [ "${BUILD_EXIT}" -ne 0 ]; then
   echo "=== ❌ Build failed. Check build.log ==="
   exit 1
 fi
+
 
 # Find the ISO (only match the hybrid one, not any leftovers)
 ISO_SOURCE=""
