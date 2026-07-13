@@ -359,6 +359,18 @@ for iface in $(ip -o link show | awk -F': ' '{print $2}' | grep -v lo); do
 done
 echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf >/dev/null
 
+# ─── Auto-setup ~/.hermes configuration and skills at boot ───
+for home_dir in "/home/rescue" "/root"; do
+    sudo mkdir -p "$home_dir/.hermes/skills"
+    if [ -f "/opt/rescue/config/hermes-config.yaml" ]; then
+        sudo cp "/opt/rescue/config/hermes-config.yaml" "$home_dir/.hermes/config.yaml"
+    fi
+    if [ -d "/opt/rescue/config/skills" ]; then
+        sudo cp -rf /opt/rescue/config/skills/* "$home_dir/.hermes/skills/" 2>/dev/null || true
+    fi
+    sudo chown -R rescue:rescue "/home/rescue/.hermes" 2>/dev/null || true
+done
+
 # Protecție: previne închiderea terminalului/bucle de login la erori
 trap 'echo ""; echo "⚠️ Eroare neașteptată în asistent. Intri în shell-ul de salvare..."; exec bash' ERR
 
@@ -457,6 +469,12 @@ ai_mode() {
             return 0
         fi
         export DEEPSEEK_API_KEY
+        # Inject the key into config.yaml for both users
+        for home_dir in "/home/rescue" "/root"; do
+            if sudo test -f "$home_dir/.hermes/config.yaml"; then
+                sudo sed -i "s/DEEPSEEK_API_KEY_HERE/$DEEPSEEK_API_KEY/g" "$home_dir/.hermes/config.yaml" 2>/dev/null || true
+            fi
+        done
     fi
     echo " Pornesc asistentul AI Hermes..."
     echo ""
