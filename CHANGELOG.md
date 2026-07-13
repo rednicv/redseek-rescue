@@ -2,6 +2,14 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.6.1] — 2026-07-13
+
+### Added
+- **Hermes Script Guide Skill** — Added `redseek-scripts-guide` skill directly into the project configs (`/opt/rescue/config/skills/`) to teach the Hermes AI agent about local diagnostic and repair scripts.
+
+### Fixed
+- **Chroot Hooks execution** — Fixed hooks path directories by copying chroot scripts to all three compatibility targets (`hooks/`, `hooks/normal/`, `hooks/chroot/`) ensuring proper execution and package setup under modern live-build (Ubuntu Noble 24.04).
+
 ## [1.6.0] — 2026-07-13
 
 ### Optimized (Opus 4.6 & Gemini 3.5 Refactors)
