@@ -264,9 +264,13 @@ POLICYRC
 chmod +x "${BUILD_DIR}/config/includes.chroot/usr/sbin/policy-rc.d"
 
 # Hermes install script (runs as chroot hook during build)
-mkdir -p "${BUILD_DIR}/config/hooks/chroot"
+# We copy hooks to hooks/, hooks/normal/, and hooks/chroot/ for compatibility with all live-build versions
+for hook_dir in "${BUILD_DIR}/config/hooks" "${BUILD_DIR}/config/hooks/normal" "${BUILD_DIR}/config/hooks/chroot"; do
+  mkdir -p "$hook_dir"
+done
+
 # Fix PATH before dpkg runs (Ubuntu Noble + live-build compatibility)
-cat > "${BUILD_DIR}/config/hooks/chroot/00-fix-path.chroot" << 'FIXPATH'
+cat > "${BUILD_DIR}/config/hooks/00-fix-path.chroot" << 'FIXPATH'
 #!/bin/sh
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 # Symlink start-stop-daemon if missing (needed by dpkg during build)
@@ -275,9 +279,9 @@ if [ ! -f /usr/sbin/start-stop-daemon ] && [ -f /bin/true ]; then
     ln -sf /bin/true /usr/sbin/start-stop-daemon
 fi
 FIXPATH
-chmod +x "${BUILD_DIR}/config/hooks/chroot/00-fix-path.chroot"
+chmod +x "${BUILD_DIR}/config/hooks/00-fix-path.chroot"
 
-cat > "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot" << 'HERMES'
+cat > "${BUILD_DIR}/config/hooks/01-install-hermes.chroot" << 'HERMES'
 #!/usr/bin/env bash
 # Installs Hermes Agent into the ISO — runs inside chroot during build
 # Installs to /usr/local so rescue user can find it
@@ -307,8 +311,13 @@ fi
 
 echo "[✓] Hermes Agent installed"
 HERMES
+chmod +x "${BUILD_DIR}/config/hooks/01-install-hermes.chroot"
 
-chmod +x "${BUILD_DIR}/config/hooks/chroot/01-install-hermes.chroot"
+# Copy hooks to all compatibility folders
+for target_dir in "${BUILD_DIR}/config/hooks/normal" "${BUILD_DIR}/config/hooks/chroot"; do
+  cp "${BUILD_DIR}/config/hooks/00-fix-path.chroot" "${target_dir}/00-fix-path.chroot"
+  cp "${BUILD_DIR}/config/hooks/01-install-hermes.chroot" "${target_dir}/01-install-hermes.chroot"
+done
 
 # SSH hardening: disable password auth for security
 # ⚠️ LIVE ISO — NO SSH keys provisioned by default!
