@@ -2,7 +2,17 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.6.0] — 2026-07-13
+
+### Optimized (Opus 4.6 & Gemini 3.5 Refactors)
+- **Case-Insensitive Path Resolution Optimization** — Replaced sequential `find` sub-processes in `find_ci` with optimized native bash globbing (`nocaseglob` + `nullglob`) for faster directory traversal on deep NTFS volumes.
+- **BitLocker Input Validation** — Added 48-digit format verification (with hyphen-removal and whitespace trimming) and retry limits to the recovery key prompt. Passed the key via stdin to `dislocker-fuse` to prevent command-line exposure.
+- **Unified Registry Verification** — Consolidated transaction log (`.LOG`, `.LOG1`, etc.) checking into a single bash validation layer, removing redundant logic from the Python sub-process.
+- **Virtual Machine CPU Stress bypass** — Skip `stress-ng` CPU stress-testing when virtualization is detected (using `systemd-detect-virt`) to prevent Kernel RCU CPU Stalls under VirtualBox/Hyper-V.
+- **ISO Build Robustness** — Merged `isohybrid` bypass and automatic `make-iso.sh` fallback from `v1.4.1-fixes` into the main `build.sh` script to ensure successful compilation under Debian/Ubuntu systems with nested path resolution.
+
 ## [1.4.18] — 2026-07-12
+
 
 ### Added
 - **Password credentials** — configured `rescue:rescue` user credentials in live-build chroot hooks and systemd services for secure local/SSH access.
