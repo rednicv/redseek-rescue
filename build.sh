@@ -545,7 +545,9 @@ ISO_SOURCE=""
 for candidate in \
   "${BUILD_DIR}/live-image-amd64.hybrid.iso" \
   "${BUILD_DIR}/binary.hybrid.iso" \
-  "${BUILD_DIR}"/*.iso; do
+  "${BUILD_DIR}/chroot/binary.hybrid.iso" \
+  "${BUILD_DIR}"/*.iso \
+  "${BUILD_DIR}/chroot"/*.iso; do
   if [ -f "$candidate" ]; then
     ISO_SOURCE="$candidate"
     break
