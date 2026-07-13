@@ -62,22 +62,36 @@ require_snapshot() {
 }
 
 # Căutare case-insensitive — parcurge calea pas cu pas
+# Folosește bash globbing (nocaseglob) în loc de find pentru viteză
 # Exemplu: find_ci /mnt/windows "Windows/System32/config"
 find_ci() {
     local base="$1"
     local path="$2"
     local current="$base"
 
+    # Save and set shell options for case-insensitive globbing
+    local old_nocaseglob old_nullglob
+    old_nocaseglob=$(shopt -p nocaseglob 2>/dev/null || true)
+    old_nullglob=$(shopt -p nullglob 2>/dev/null || true)
+    shopt -s nocaseglob nullglob
+
     IFS='/' read -ra parts <<< "$path"
     for part in "${parts[@]}"; do
         if [ -z "$part" ]; then continue; fi
-        local match
-        match=$(find "$current" -maxdepth 1 -iname "$part" -print -quit 2>/dev/null || true)
-        if [ -z "$match" ]; then
+        # Glob expands case-insensitively; take the first match
+        local candidates=("${current}"/${part})
+        if [ ${#candidates[@]} -eq 0 ]; then
+            # Restore shell options before returning
+            eval "$old_nocaseglob" 2>/dev/null || true
+            eval "$old_nullglob" 2>/dev/null || true
             echo ""
             return 0
         fi
-        current="$match"
+        current="${candidates[0]}"
     done
+
+    # Restore shell options
+    eval "$old_nocaseglob" 2>/dev/null || true
+    eval "$old_nullglob" 2>/dev/null || true
     echo "$current"
 }

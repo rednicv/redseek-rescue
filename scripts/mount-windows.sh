@@ -22,13 +22,30 @@ for part in $(lsblk -lno NAME,FSTYPE | awk '$2=="ntfs" || $2=="BitLocker" {print
 
     if [ "$FSTYPE" = "BitLocker" ]; then
         log_warn "Partiție BitLocker detectată pe $part!"
-        echo -n "Introduceți cheia de recuperare BitLocker (48 cifre): "
-        read -r BK_KEY
-        if dislocker-fuse -V "$part" -p"$BK_KEY" -- "$BITLOCKER_DIR"; then
+        local BK_KEY="" BK_ATTEMPTS=0 BK_MAX=3
+        while [ "$BK_ATTEMPTS" -lt "$BK_MAX" ]; do
+            echo -n "Introduceți cheia de recuperare BitLocker (48 cifre): "
+            read -r BK_KEY
+            # Trim whitespace and remove hyphens for validation
+            BK_KEY=$(echo "$BK_KEY" | tr -d '[:space:]')
+            local BK_DIGITS
+            BK_DIGITS=$(echo "$BK_KEY" | tr -d '-')
+            if ! echo "$BK_DIGITS" | grep -qE '^[0-9]{48}$'; then
+                BK_ATTEMPTS=$((BK_ATTEMPTS + 1))
+                log_error "Format invalid. Cheia trebuie să conțină exact 48 cifre (încercare $BK_ATTEMPTS/$BK_MAX)."
+                continue
+            fi
+            break
+        done
+        if [ "$BK_ATTEMPTS" -ge "$BK_MAX" ]; then
+            log_error "Prea multe încercări invalide. Se sare peste partiția $part."
+            continue
+        fi
+        if echo "$BK_KEY" | dislocker-fuse -V "$part" -p- -- "$BITLOCKER_DIR"; then
             part="${BITLOCKER_DIR}/dislocker-file"
             log_success "BitLocker decriptat cu succes."
         else
-            log_error "Cheie incorectă."
+            log_error "Cheie incorectă sau eroare la decriptare."
             continue
         fi
     fi
