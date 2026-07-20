@@ -605,9 +605,11 @@ if [ -z "${ISO_SOURCE}" ]; then
   exit 1
 fi
 
-# Copy result
+# Move result instead of copy to save disk space on small VPS partitions
 mkdir -p "${OUTPUT_DIR}"
-cp "${ISO_SOURCE}" "${OUTPUT_DIR}/${ISO_NAME}.iso"
+mv "${ISO_SOURCE}" "${OUTPUT_DIR}/${ISO_NAME}.iso"
+# Immediately purge build directory to release ~10GB before verifying
+sudo rm -rf "${BUILD_DIR}"
 echo ""
 echo "=== ✅ ISO ready: ${OUTPUT_DIR}/${ISO_NAME}.iso ==="
 ls -lh "${OUTPUT_DIR}/${ISO_NAME}.iso"
