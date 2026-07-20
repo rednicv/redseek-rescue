@@ -22,7 +22,9 @@ for part in $(lsblk -lno NAME,FSTYPE | awk '$2=="ntfs" || $2=="BitLocker" {print
 
     if [ "$FSTYPE" = "BitLocker" ]; then
         log_warn "Partiție BitLocker detectată pe $part!"
-        local BK_KEY="" BK_ATTEMPTS=0 BK_MAX=3
+        BK_KEY=""
+    BK_ATTEMPTS=0
+    BK_MAX=3
         while [ "$BK_ATTEMPTS" -lt "$BK_MAX" ]; do
             echo -n "Introduceți cheia de recuperare BitLocker (48 cifre): "
             read -r BK_KEY

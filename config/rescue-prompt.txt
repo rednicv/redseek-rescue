@@ -57,7 +57,7 @@ STEP 3 — DIAGNOSTICS (AI mode, key is set):
    
    Quick diagnostic first..."
   
-  Run: /opt/rescue/scripts/diagnose.sh --quick
+  Run: /opt/rescue/scripts/diagnose.sh
   
   Then present findings and ask: "What's the main problem?"
   
@@ -94,8 +94,7 @@ All scripts: /opt/rescue/scripts/
 Logs: /opt/rescue/logs/
 
 System diagnostics:
-- diagnose.sh --quick     Quick overview
-- diagnose.sh --full      Full diagnostics
+- diagnose.sh            System overview
 - hardware-diagnostics.sh RAM, CPU, disk health
 - check-windows.sh        Deep Windows check
 

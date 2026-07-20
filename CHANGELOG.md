@@ -2,6 +2,13 @@
 
 All notable changes to RedSeek Rescue will be documented in this file.
 
+## [1.8.1] — 2026-07-20
+
+### Fixed
+- **`mount-windows.sh`**: Eliminated invalid `local` declaration outside of functions in BitLocker handling loop.
+- **`rescue-gui.sh`**: Fixed interactive `reset-password.sh` execution deadlock by opening interactive terminal window instead of redirecting `chntpw` to Zenity `text-info`.
+- **`rescue-prompt.txt`**: Fixed invalid `--quick` / `--full` flag references for `diagnose.sh`.
+
 ## [1.8.0] — 2026-07-14
 
 ### Added

@@ -2,7 +2,7 @@
   <img src="assets/banner.svg" alt="RedSeek Rescue Banner" width="100%">
 </p>
 
-# RedSeek Rescue [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](/LICENSE) [![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](https://github.com/rednicv/redseek-rescue/releases) [![CI](https://github.com/rednicv/redseek-rescue/actions/workflows/ci.yml/badge.svg)](https://github.com/rednicv/redseek-rescue/actions/workflows/ci.yml) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md) [![Presentation](https://img.shields.io/badge/Presentation-Opus%204.6-purple.svg)](PRESENTATION.md)
+# RedSeek Rescue [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](/LICENSE) [![Version](https://img.shields.io/badge/version-1.8.1-blue.svg)](https://github.com/rednicv/redseek-rescue/releases) [![CI](https://github.com/rednicv/redseek-rescue/actions/workflows/ci.yml/badge.svg)](https://github.com/rednicv/redseek-rescue/actions/workflows/ci.yml) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md) [![Presentation](https://img.shields.io/badge/Presentation-Opus%204.6-purple.svg)](PRESENTATION.md)
 
 **AI-powered bootable USB for Windows system repair.**
 
