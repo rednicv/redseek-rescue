@@ -35,7 +35,6 @@ OUTPUT_DIR="${ROOT_DIR}/output"
 ISO_OVERLAY="${ROOT_DIR}/iso-overlay"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
 CONFIG_DIR="${ROOT_DIR}/config"
-CHROOT_CUSTOM="${ROOT_DIR}/chroot-custom"
 BUILD_DIR="${ROOT_DIR}/build"
 
 # Read version from VERSION file, fallback to hardcoded
@@ -71,7 +70,7 @@ for pkg in mtools xorriso isolinux syslinux-utils; do
 done
 if [ -n "$MISSING" ]; then
   echo "[*] Installing missing packages:$MISSING"
-  sudo apt-get install -y $MISSING || echo "[!] Some packages failed. Build may continue."
+  sudo apt-get install -y "$MISSING" || echo "[!] Some packages failed. Build may continue."
 fi
 echo ""
 
@@ -580,7 +579,6 @@ cd "${BUILD_DIR}"
 echo "[*] Running lb build with sudo (required for chroot + mount operations)..."
 set +e
 sudo lb build 2>&1 | tee "${ROOT_DIR}/build.log"
-BUILD_EXIT=$?
 set -e
 
 # Fix ownership so user can modify build/ after

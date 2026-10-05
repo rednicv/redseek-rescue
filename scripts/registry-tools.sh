@@ -60,7 +60,7 @@ if $PENDING_TX && $FORCE_MODE; then
 fi
 
 log_info "Bypass Fast Startup în registrul offline..."
-python3 - "$SYSTEM_HIVE" <<'PYEOF'
+if ! python3 - "$SYSTEM_HIVE" <<'PYEOF'
 import sys
 import hivex
 
@@ -83,7 +83,7 @@ if control_set:
                 print('[!] Cheia Power nu a fost găsită.', file=sys.stderr)
                 sys.exit(1)
 PYEOF
-if [ $? -ne 0 ]; then
+then
     log_error "Eroare la modificarea hivex."
 fi
 

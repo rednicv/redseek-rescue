@@ -34,7 +34,8 @@
 }
 
 @test "MOUNT_BASE poate fi suprascris prin environment" {
-    MOUNT_BASE="/custom/path" source scripts/utils.sh
+    export MOUNT_BASE="/custom/path"
+    source scripts/utils.sh
     [ "$MOUNT_BASE" = "/custom/path" ]
 }
 

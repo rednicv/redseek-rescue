@@ -43,7 +43,7 @@ log_info "Snapshot-uri disponibile:"
 ls -l "$VSS_DIR"
 
 # Primul snapshot valid (dinamic, nu hardcoded vss1)
-FIRST_VSS=$(ls "${VSS_DIR}"/vss* 2>/dev/null | head -n1 || true)
+FIRST_VSS=$(find "${VSS_DIR}" -maxdepth 1 -name 'vss*' -print -quit 2>/dev/null)
 
 if [ -n "$FIRST_VSS" ] && [ -f "$FIRST_VSS" ]; then
     log_info "Se montează folderul de restaurare ($(basename "$FIRST_VSS"))..."

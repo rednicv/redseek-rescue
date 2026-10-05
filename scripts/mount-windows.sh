@@ -30,7 +30,6 @@ for part in $(lsblk -lno NAME,FSTYPE | awk '$2=="ntfs" || $2=="BitLocker" {print
             read -r BK_KEY
             # Trim whitespace and remove hyphens for validation
             BK_KEY=$(echo "$BK_KEY" | tr -d '[:space:]')
-            local BK_DIGITS
             BK_DIGITS=$(echo "$BK_KEY" | tr -d '-')
             if ! echo "$BK_DIGITS" | grep -qE '^[0-9]{48}$'; then
                 BK_ATTEMPTS=$((BK_ATTEMPTS + 1))
