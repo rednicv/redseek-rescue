@@ -1,0 +1,2 @@
+# Ignore SC1091 (Not following sourced file utils.sh)
+disable=SC1091
